@@ -1,99 +1,9 @@
 import * as THREE from 'three';
-
-class FirstPersonControls {
-  constructor(camera, domElement) {
-    this.camera = camera;
-    this.domElement = domElement;
-
-    // Movement speed
-    this.moveSpeed = 0.1;
-
-    // Mouse sensitivity
-    this.mouseSensitivity = 0.002;
-
-    // Current velocity
-    this.velocity = new THREE.Vector3();
-
-    // Keyboard state
-    this.keys = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false,
-    };
-
-    // Mouse state
-    this.mouseX = 0;
-    this.mouseY = 0;
-
-    // Set up event listeners
-    this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
-    document.addEventListener('keyup', this.onKeyUp.bind(this));
-
-    // Lock pointer
-    this.domElement.addEventListener('click', () => {
-      this.domElement.requestPointerLock();
-    });
-  }
-
-  onMouseMove(event) {
-    if (document.pointerLockElement === this.domElement) {
-      this.mouseX -= event.movementX * this.mouseSensitivity;
-      this.mouseY -= event.movementY * this.mouseSensitivity;
-
-      // Clamp vertical rotation
-      this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
-
-      this.camera.rotation.order = 'YXZ';
-      this.camera.rotation.y = this.mouseX;
-      this.camera.rotation.x = this.mouseY;
-    }
-  }
-
-  onKeyDown(event) {
-    console.log('Key pressed:', event.code);  // Add this line for debugging
-    switch (event.code) {
-      case 'KeyW': this.keys.forward = true; break;
-      case 'KeyS': this.keys.backward = true; break;
-      case 'KeyA': this.keys.left = true; break;
-      case 'KeyD': this.keys.right = true; break;
-    }
-  }
-
-  onKeyUp(event) {
-    switch (event.code) {
-      case 'KeyW': this.keys.forward = false; break;
-      case 'KeyS': this.keys.backward = false; break;
-      case 'KeyA': this.keys.left = false; break;
-      case 'KeyD': this.keys.right = false; break;
-    }
-  }
-
-  update() {
-    // Calculate movement direction
-    const direction = new THREE.Vector3();
-
-    if (this.keys.forward) direction.z -= 1;
-    if (this.keys.backward) direction.z += 1;
-    if (this.keys.left) direction.x -= 1;
-    if (this.keys.right) direction.x += 1;
-
-    direction.normalize();
-
-    // Apply movement to camera
-    this.camera.translateX(direction.x * this.moveSpeed);
-    this.camera.translateY(direction.y * this.moveSpeed);
-    this.camera.translateZ(direction.z * this.moveSpeed);
-  }
-}
-
+import { FirstPersonControls } from './FirstPersonControls.js';
 
 // Set up the scene, camera, and renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const cameraHelper = new THREE.CameraHelper(camera);
-scene.add(cameraHelper);
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -102,10 +12,10 @@ document.getElementById('app').appendChild(renderer.domElement);
 // Create the icosahedron
 const geometry = new THREE.IcosahedronGeometry(1, 0);
 const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const gridhelper = new THREE.GridHelper(200, 200);
-scene.add(gridhelper);
 const icosahedron = new THREE.Mesh(geometry, material);
 scene.add(icosahedron);
+const gridhelper = new THREE.GridHelper(200, 200);
+scene.add(gridhelper);
 
 // Add lighting
 const light = new THREE.HemisphereLight(0xffffff, 1);
@@ -116,6 +26,61 @@ camera.position.z = 5;
 
 // Create First Person Controls
 const controls = new FirstPersonControls(camera, renderer.domElement);
+
+// Generate a unique ID for this player
+controls.id = Math.random().toString(36).substr(2, 9);
+
+// Object to store other players
+const players = {};
+
+// WebSocket connection handling
+let socket;
+let isConnected = false;
+
+function connectWebSocket() {
+  socket = new WebSocket('ws://localhost:8080/ws');
+
+  socket.onopen = () => {
+    console.log('WebSocket connected');
+    isConnected = true;
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.message && typeof data.message === 'string') {
+      const [id, x, y, z] = data.message.split(',');
+      if (id !== controls.id) {
+        if (!players[id]) {
+          const playerGeometry = new THREE.CylinderGeometry(1, 1, 5);
+          const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+          players[id] = new THREE.Mesh(playerGeometry, playerMaterial);
+          scene.add(players[id]);
+        }
+        players[id].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
+      }
+    }
+  };
+
+  socket.onclose = (event) => {
+    console.log('WebSocket disconnected:', event.reason);
+    isConnected = false;
+    setTimeout(connectWebSocket, 5000); // Attempt to reconnect after 5 seconds
+  };
+
+  socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    socket.close();
+  };
+}
+
+connectWebSocket();
+
+// Function to safely send WebSocket messages
+function safeSend(message) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(message);
+  }
+}
 
 // Animation loop
 function animate() {
@@ -128,6 +93,11 @@ function animate() {
   icosahedron.rotation.x += 0.01;
   icosahedron.rotation.y += 0.01;
   
+  // Send this player's position to the server
+  if (isConnected) {
+    safeSend(`${controls.id},${camera.position.x},${camera.position.y},${camera.position.z}`);
+  }
+  
   renderer.render(scene, camera);
 }
 
@@ -139,9 +109,3 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// Fetch data from backend
-// fetch('http://localhost:8080/')
-//   .then(response => response.json())
-//   .then(data => console.log(data))
-//   .catch(error => console.error('Error:', error));
