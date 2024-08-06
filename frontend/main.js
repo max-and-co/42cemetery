@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { FirstPersonControls } from './FirstPersonControls.js';
 import { Graveyard } from './grave.js';
+import { User } from './user.js';
 
 // Set up the scene, camera, and renderer
-const scene = new THREE.Scene();
+export const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 
@@ -26,82 +27,113 @@ scene.add(light);
 // Set initial camera position
 camera.position.y = 1;
 
-// Create First Person Controls
-const controls = new FirstPersonControls(camera, renderer.domElement);
-
-// Generate a unique ID for this player
-controls.id = Math.random().toString(36).substr(2, 9);
-
-// Object to store other players
-const players = {};
-
-// WebSocket connection handling
-let socket;
-let isConnected = false;
-
-function connectWebSocket() {
-  socket = new WebSocket('ws://localhost:8080/ws');
-
-  socket.onopen = () => {
-    console.log('WebSocket connected');
-    isConnected = true;
-  };
-
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.message && typeof data.message === 'string') {
-      const [id, x, y, z] = data.message.split(',');
-      if (id !== controls.id) {
-        if (!players[id]) {
-          const playerGeometry = new THREE.CylinderGeometry(1, 1, 5);
-          const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-          players[id] = new THREE.Mesh(playerGeometry, playerMaterial);
-          scene.add(players[id]);
-        }
-        players[id].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
-      }
-    }
-  };
-
-  socket.onclose = (event) => {
-    console.log('WebSocket disconnected:', event.reason);
-    isConnected = false;
-    setTimeout(connectWebSocket, 5000); // Attempt to reconnect after 5 seconds
-  };
-
-  socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-    socket.close();
-  };
-}
-
-connectWebSocket();
-
-// Function to safely send WebSocket messages
-function safeSend(message) {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(message);
+class UserManager {
+  constructor() {
+      this.users = [];
+      this.localUser = null;
+      this.socket = null;
+      this.id = Math.random().toString(36).substr(2, 9);
+      this.isConnected = false;
   }
+
+  createUser(userData) {
+    const user = new User(userData);
+    user.init();
+    return user;
+  }
+
+  connectWebSocket() {
+      console.log('Attempting to connect WebSocket');
+      this.socket = new WebSocket('ws://localhost:8080/ws');
+
+      this.socket.onopen = () => {
+          console.log('WebSocket connected');
+          this.isConnected = true;
+      };
+
+      this.socket.onmessage = (event) => {
+        const messageData = JSON.parse(event.data);
+        const messageString = messageData.message;
+        const data = JSON.parse(messageString);
+      if (data.id !== this.id) {
+        if (!this.users[data.id]) {
+          this.users[data.id] = this.createUser(data.user);
+        }
+        this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z);
+      };
+    };
+
+      this.socket.onclose = (event) => {
+          console.log('WebSocket disconnected:', event.reason);
+          this.isConnected = false;
+          setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
+      };
+
+      this.socket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          this.socket.close();
+      };
+  }
+
+  safeSend(message) {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(message);
+      }
+  }
+
+}
+// Create and export the UserManager instance
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'p') {
+    console.log(userManage.localUser);
+  }
+});
+
+export let userManager;
+export let userLoggedData;
+
+// Function to initialize the user system
+export function initializeUserSystem(localUserData) {
+  userManager = new UserManager();
+  userManager.connectWebSocket();
+  userLoggedData = localUserData;
 }
 
-// Animation loop
-function animate() {
+// Modified animation loop
+export function animate() {
   requestAnimationFrame(animate);
-  
+
   // Update controls
   controls.update();
-  
+
   // Rotate the icosahedron
   icosahedron.rotation.x += 0.01;
   icosahedron.rotation.y += 0.01;
-  
-  // Send this player's position to the server
-  if (isConnected) {
-    safeSend(`${controls.id},${camera.position.x},${camera.position.y},${camera.position.z}`);
+
+  // Update local user position
+  if (userManager && userManager.isConnected) {
+    const message = JSON.stringify({
+      id: userManager.id,
+      user: {
+        id: userLoggedData.id,
+        login: userLoggedData.login,
+        image: userLoggedData.image
+      },
+      position: {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z
+      }
+    });
+    userManager.safeSend(message);
   }
-  
+
   renderer.render(scene, camera);
 }
+
+// Initialize FirstPersonControls
+export const controls = new FirstPersonControls(camera, renderer.domElement);
 
 animate();
 
@@ -119,4 +151,3 @@ fetch('data.json')
     new Graveyard(scene, jsonData);
   })
   .catch(error => console.error('Error loading JSON:', error));
-

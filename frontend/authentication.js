@@ -1,3 +1,5 @@
+import { initializeUserSystem } from './main.js';
+
 // Login function
 async function redirectTo42Auth() {
     const response = await fetch('http://localhost:8080/login');
@@ -26,12 +28,13 @@ async function redirectTo42Auth() {
     }
   }
 
-export let userLogged;
-
   // Call handleOAuthCallback when the oauth_callback page loads
   if (window.location.pathname === '/oauth_callback') {
-    userLogged = await handleOAuthCallback();
-    console.log(userLogged);
+    initializeUserSystem(await handleOAuthCallback());
   }
 // Attach this function to your button's click event
 document.getElementById('auth-button').addEventListener('click', redirectTo42Auth);
+
+if (window.location.pathname !== '/oauth_callback') {
+    redirectTo42Auth();
+}
