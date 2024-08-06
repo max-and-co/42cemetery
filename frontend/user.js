@@ -33,13 +33,14 @@ export class User {
         const material = new THREE.MeshBasicMaterial({ map: texture });
         this.frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.1), material);
         this.frame.position.y = 2;
-        this.frame.position.z = 0.95; // Position the frame above the cylinder
+        this.frame.position.z = -0.95; // Position the frame above the cylinder
         this.cylinder.add(this.frame); // Add the frame as a child of the cylinder
     }
 
-    updatePosition(x, y, z) {
+    updatePosition(x, y, z, rotation) {
         if (this.cylinder) {
             this.cylinder.position.set(parseFloat(x), parseFloat(y), parseFloat(z));
+			this.cylinder.rotation.y = rotation;
         }
     }
 }

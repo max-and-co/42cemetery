@@ -56,10 +56,9 @@ class UserManager {
         const messageString = messageData.message;
         const data = JSON.parse(messageString);
       if (data.id !== this.id) {
-        if (!this.users[data.id]) {
+        if (!this.users[data.id])
           this.users[data.id] = this.createUser(data.user);
-        }
-        this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z);
+        this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z, data.rotation);
       };
     };
 
@@ -124,7 +123,8 @@ export function animate() {
         x: camera.position.x,
         y: camera.position.y,
         z: camera.position.z
-      }
+      },
+      rotation: camera.rotation.y,
     });
     userManager.safeSend(message);
   }
