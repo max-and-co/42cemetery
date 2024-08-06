@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Grave, Graveyard } from './grave.js';
 
 class FirstPersonControls {
   constructor(camera, domElement) {
@@ -7,6 +8,7 @@ class FirstPersonControls {
 
     // Movement speed
     this.moveSpeed = 0.1;
+
 
     // Mouse sensitivity
     this.mouseSensitivity = 0.002;
@@ -93,7 +95,7 @@ class FirstPersonControls {
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const cameraHelper = new THREE.CameraHelper(camera);
-scene.add(cameraHelper);
+// scene.add(cameraHelper);
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -102,7 +104,7 @@ document.getElementById('app').appendChild(renderer.domElement);
 // Create the icosahedron
 const geometry = new THREE.IcosahedronGeometry(1, 0);
 const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const gridhelper = new THREE.GridHelper(200, 200);
+const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
 const icosahedron = new THREE.Mesh(geometry, material);
 scene.add(icosahedron);
@@ -112,10 +114,14 @@ const light = new THREE.HemisphereLight(0xffffff, 1);
 scene.add(light);
 
 // Set initial camera position
-camera.position.z = 5;
+camera.position.y = 1;
 
 // Create First Person Controls
 const controls = new FirstPersonControls(camera, renderer.domElement);
+
+// create a bunch of graves in a grid
+const graveyard = new Graveyard(scene, 100);
+
 
 // Animation loop
 function animate() {
@@ -139,6 +145,16 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+fetch('data.json')
+  .then(response => response.json())
+  .then(jsonData => {
+    // Create the graveyard
+    const graveyard = new Graveyard(scene, jsonData);
+  })
+  .catch(error => console.error('Error loading JSON:', error));
+
+
 
 // Fetch data from backend
 // fetch('http://localhost:8080/')
