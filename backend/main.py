@@ -15,7 +15,7 @@
 # async def root():
 #     return {"message": "Hello from FastAPI"}
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 import os
 import re
 import time
+import json
 
 # Load environment variables
 load_dotenv()
@@ -37,7 +38,6 @@ API_BASE_URL = 'https://api.intra.42.fr'
 
 app = FastAPI()
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -46,6 +46,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.broadcast(json.dumps({"message": data}))
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast(json.dumps({"message": "A user has left the game"}))
+
+# Keep your existing HTTP endpoints here
+@app.get("/")
+async def root():
+    return {"message": "Hello from FastAPI"}
 
 async def get_access_token() -> str:
     async with httpx.AsyncClient() as client:
