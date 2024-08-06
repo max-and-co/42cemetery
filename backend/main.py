@@ -1,31 +1,12 @@
-# from fastapi import FastAPI
-# from fastapi.middleware.cors import CORSMiddleware
-
-# app = FastAPI()
-
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["http://localhost:5173"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# @app.get("/")
-# async def root():
-#     return {"message": "Hello from FastAPI"}
-
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import httpx
-from typing import List, Dict, Any
-from datetime import datetime
-from math import sqrt
+from typing import List
 from dotenv import load_dotenv
 import os
 import re
-import time
+import secrets
 import json
 
 # Load environment variables
@@ -45,6 +26,61 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+REDIRECT_URI = 'http://localhost:5173/oauth_callback'
+SCOPE = 'public'
+
+@app.get("/login")
+async def login():
+    state = secrets.token_urlsafe(32)
+    auth_url = (
+        f"{API_BASE_URL}/oauth/authorize?"
+        f"client_id={UID}&"
+        f"redirect_uri={REDIRECT_URI}&"
+        f"response_type=code&"
+        f"scope={SCOPE}&"
+        f"state={state}"
+    )
+    return JSONResponse(content={"auth_url": auth_url})
+
+@app.post("/exchange_token")
+async def exchange_token(request: Request):
+    data = await request.json()
+    code = data.get('code')
+
+    if not code:
+        raise HTTPException(status_code=400, detail="Authorization code not found")
+
+    token_url = f'{API_BASE_URL}/oauth/token'
+    token_data = {
+        'grant_type': 'authorization_code',
+        'client_id': UID,
+        'client_secret': SECRET,
+        'code': code,
+        'redirect_uri': REDIRECT_URI,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(token_url, data=token_data)
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch access token")
+
+        token_json = response.json()
+        access_token = token_json.get('access_token')
+
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Access token not found")
+
+        api_url = f'{API_BASE_URL}/v2/me'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        api_response = await client.get(api_url, headers=headers)
+        if api_response.status_code != 200:
+            raise HTTPException(status_code=api_response.status_code, detail="Failed to fetch user data")
+
+        user_data = api_response.json()
+
+    return JSONResponse(content=user_data)
+
 
 class ConnectionManager:
     def __init__(self):
@@ -133,3 +169,5 @@ async def get_users(campus_id: int = 9):
         raise HTTPException(status_code=e.response.status_code, detail=f"HTTP error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
+

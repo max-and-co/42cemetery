@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { FirstPersonControls } from './FirstPersonControls.js';
-import { Grave, Graveyard } from './grave.js';
+import { Graveyard } from './grave.js';
 
 // Set up the scene, camera, and renderer
 const scene = new THREE.Scene();
