@@ -31,9 +31,9 @@ export class Graveyard {
                 else
                     isBlackholed = 1;
                 const yRotation = Math.random() * Math.PI * 2;
-                const imageUrl = userData.user.image.versions.small;
+                const imageUrl = userData.user.image.versions.medium;
                 
-                const grave = new Grave(scene, position, isBlackholed, yRotation, imageUrl);
+                const grave = new Grave(scene, position, isBlackholed, yRotation, imageUrl, userData);
                 graves.push(grave);
                 
                 placedGraves++;
@@ -44,8 +44,23 @@ export class Graveyard {
     }
 }
 
+class GraveAssets {
+    constructor() {
+        this.redMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); 
+        this.greenMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        this.whiteMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        this.cylinderGeometry = new THREE.CylinderGeometry(2, 2, 0.1, 32);
+        this.boxGeometry = new THREE.BoxGeometry(1, 2, 2);
+        this.cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    }
+}
+
+const graveAssets = new GraveAssets();
+
+
+
 export class Grave extends THREE.Object3D {
-    constructor(scene, position, isBlackholed, yRotation, imageUrl) {
+    constructor(scene, position, isBlackholed, yRotation, imageUrl, userData) {
         super();
 
         const boxGeometry = new THREE.BoxGeometry(1, 2, 2);
@@ -54,8 +69,10 @@ export class Grave extends THREE.Object3D {
         // Load texture for the cube
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load(imageUrl, (texture) => {
-            const cubeMaterial = new THREE.MeshStandardMaterial({ map: texture });
-            const cube = new THREE.Mesh(boxGeometry, cubeMaterial);
+            // const cubeMaterial = new THREE.MeshStandardMaterial({ map: texture });
+            // const cube = new THREE.Mesh(boxGeometry, cubeMaterial);
+            const cube = new THREE.Mesh(boxGeometry, graveAssets.cubeMaterial.clone());
+            cube.material.map = texture;
             cube.position.set(0, 1, 0);  // Slightly above the base
             this.add(cube);
         });
@@ -63,11 +80,11 @@ export class Grave extends THREE.Object3D {
         // Material for the base
         let baseMaterial;
         if (isBlackholed === 0)
-            baseMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+            baseMaterial = graveAssets.greenMaterial;
         else if (isBlackholed === 1)
-            baseMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            baseMaterial = graveAssets.redMaterial;
         else
-            baseMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            baseMaterial = graveAssets.whiteMaterial;
         const cylinder = new THREE.Mesh(cylinderGeometry, baseMaterial);
         this.add(cylinder);
 

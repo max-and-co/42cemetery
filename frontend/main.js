@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { FirstPersonControls } from './FirstPersonControls.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
 import { Grave, Graveyard } from './grave.js';
 
 // Set up the scene, camera, and renderer
@@ -10,24 +11,21 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('app').appendChild(renderer.domElement);
 
-// Create the icosahedron
-const geometry = new THREE.IcosahedronGeometry(1, 0);
-const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
-const icosahedron = new THREE.Mesh(geometry, material);
-scene.add(icosahedron);
-
 
 // Add lighting
-const light = new THREE.HemisphereLight(0xffffff, 1);
-scene.add(light);
+const hemilight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.3);
+const light = new THREE.PointLight(0xffffff, 1, 30, 2);
+// light.castShadow = true;
+scene.add(hemilight, light);
 
 // Set initial camera position
 camera.position.y = 1;
 
 // Create First Person Controls
-const controls = new FirstPersonControls(camera, renderer.domElement);
+// const controls = new FirstPersonControls(camera, renderer.domElement);
+const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1.7, light);
 
 // Generate a unique ID for this player
 controls.id = Math.random().toString(36).substr(2, 9);
@@ -56,7 +54,6 @@ function connectWebSocket() {
           const playerGeometry = new THREE.CylinderGeometry(1, 1, 5);
           const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
           players[id] = new THREE.Mesh(playerGeometry, playerMaterial);
-          scene.add(players[id]);
         }
         players[id].position.set(parseFloat(x), parseFloat(y), parseFloat(z));
       }
@@ -90,10 +87,7 @@ function animate() {
   
   // Update controls
   controls.update();
-  
-  // Rotate the icosahedron
-  icosahedron.rotation.x += 0.01;
-  icosahedron.rotation.y += 0.01;
+  console.log(controls.camera.position, controls.light.position);
   
   // Send this player's position to the server
   if (isConnected) {
