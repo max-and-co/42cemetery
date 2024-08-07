@@ -25,7 +25,7 @@ const light = new THREE.PointLight(0xffffff, 1, 30, 2);
 scene.add(hemilight, light);
 
 // Set initial camera position
-camera.position.y = 1;
+camera.position.y = 10;
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
@@ -56,7 +56,7 @@ export function animate() {
   icosahedron.rotation.y += 0.01;
 
   // Update local user position
-  if (userManager && userManager.isConnected) {
+  if (userManager && userManager.isConnected && userManager.id) {
     const message = JSON.stringify({
       id: userManager.id,
       user: {
@@ -80,6 +80,7 @@ export function animate() {
 // Initialize FirstPersonControls
 // export const controls = new FirstPersonControls(camera, renderer.domElement);
 export const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1, light);
+
 animate();
 
 // Handle window resizing

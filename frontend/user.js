@@ -23,7 +23,7 @@ export class User {
 
     createsphere() {
         const geometry = new THREE.SphereGeometry(1, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
         this.sphere = new THREE.Mesh(geometry, material);
         scene.add(this.sphere);
     }

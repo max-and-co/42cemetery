@@ -5,7 +5,7 @@ export class UserManager {
 		this.users = [];
 		this.localUser = null;
 		this.socket = null;
-		this.id = Math.random().toString(36).substr(2, 9);
+		this.id = null;
 		this.isConnected = false;
   
 		window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
@@ -33,39 +33,70 @@ export class UserManager {
 	connectWebSocket() {
 		console.log('Attempting to connect WebSocket');
 		this.socket = new WebSocket('ws://localhost:8080/ws');
-  
+		
 		this.socket.onopen = () => {
 			console.log('WebSocket connected');
 			this.isConnected = true;
 		};
   
 		this.socket.onmessage = (event) => {
-		  const messageData = JSON.parse(event.data);
-		  const messageString = messageData.message;
-		  const data = JSON.parse(messageString);
-		  if (data.message === 'disconnect') {
-			console.log("User disconnected:", data.id);
-			this.removeUser(data.id);
-			return;
-		  }
-		if (data.id !== this.id) {
-		if (!this.users[data.id])
-			this.users[data.id] = this.createUser(data.user);
-		this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z, data.rotation);
-		}
-	  };
-  
+		const messageData = JSON.parse(event.data);
+		
+		switch(messageData.type) {
+			case 'connection_info':
+				this.handleConnectionInfo(messageData);
+				break;
+			case 'user_connected':
+				this.handleUserConnected(messageData);
+				break;
+				case 'user_disconnected':
+				this.handleUserDisconnected(messageData);
+				break;
+			default:
+				this.handleGameMessage(messageData);
+			}
+		};
+		
 		this.socket.onclose = (event) => {
 			console.log('WebSocket disconnected:', event.reason);
 			this.isConnected = false;
 			this.safeSend(JSON.stringify({ id: this.id, message: 'disconnect' }));
 			setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
 		};
-  
+		
 		this.socket.onerror = (error) => {
 			console.error('WebSocket error:', error);
 			this.socket.close();
 		};
+	}
+			
+	handleConnectionInfo(data) {
+		this.id = data.client_id;
+		console.log(`Connected as client ${this.id}`);
+		console.log(`Total connections: ${data.total_connections}`);
+	// You can add more logic here, like initializing the local user
+	}
+
+	handleUserConnected(data) {
+		if (data.client_id !== this.id) {
+			console.log(`User ${data.client_id} has connected`);
+			// You can add more logic here, like creating a new user object
+		}
+	}
+
+	handleUserDisconnected(data) {
+		console.log(`User ${data.client_id} has disconnected`);
+		this.removeUser(data.client_id);
+	}
+
+	handleGameMessage(messageData) {
+		const messageString = messageData.message;
+		const data = JSON.parse(messageString);
+		if (data.id !== this.id) {
+			if (!this.users[data.id])
+				this.users[data.id] = this.createUser(data.user);
+			this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z, data.rotation);
+		}  
 	}
   
 	safeSend(message) {
@@ -73,6 +104,5 @@ export class UserManager {
 		  this.socket.send(message);
 		}
 	}
-  
   }
   
