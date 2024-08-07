@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { FirstPersonControls } from './FirstPersonControls.js';
 import { Graveyard } from './grave.js';
-import { User } from './user.js';
-
+import { UserManager } from './userManager.js';
 // Set up the scene, camera, and renderer
 export const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -27,65 +26,10 @@ scene.add(light);
 // Set initial camera position
 camera.position.y = 1;
 
-class UserManager {
-  constructor() {
-      this.users = [];
-      this.localUser = null;
-      this.socket = null;
-      this.id = Math.random().toString(36).substr(2, 9);
-      this.isConnected = false;
-  }
-
-  createUser(userData) {
-    const user = new User(userData);
-    user.init();
-    return user;
-  }
-
-  connectWebSocket() {
-      console.log('Attempting to connect WebSocket');
-      this.socket = new WebSocket('ws://localhost:8080/ws');
-
-      this.socket.onopen = () => {
-          console.log('WebSocket connected');
-          this.isConnected = true;
-      };
-
-      this.socket.onmessage = (event) => {
-        const messageData = JSON.parse(event.data);
-        const messageString = messageData.message;
-        const data = JSON.parse(messageString);
-      if (data.id !== this.id) {
-        if (!this.users[data.id])
-          this.users[data.id] = this.createUser(data.user);
-        this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z, data.rotation);
-      };
-    };
-
-      this.socket.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.reason);
-          this.isConnected = false;
-          setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
-      };
-
-      this.socket.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          this.socket.close();
-      };
-  }
-
-  safeSend(message) {
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        this.socket.send(message);
-      }
-  }
-
-}
-// Create and export the UserManager instance
-
 document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
-    console.log(userManage.localUser);
+    console.log('Camera position:', camera.position);
+    userManager.socket.close();
   }
 });
 

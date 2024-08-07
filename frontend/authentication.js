@@ -11,8 +11,7 @@ async function redirectTo42Auth() {
   async function handleOAuthCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    
-    console.log(code);
+
     if (code) {
       const response = await fetch('http://localhost:8080/exchange_token', {
         method: 'POST',
@@ -21,9 +20,12 @@ async function redirectTo42Auth() {
         },
         body: JSON.stringify({ code }),
       });
+      if (response.status !== 200) {
+        window.location.href = 'http://localhost:5173';
+      }
       
       const userData = await response.json();
-      // Handle the user data (e.g., store in state, display to user, etc.)
+        // Handle the user data (e.g., store in state, display to user, etc.)
       return userData;
     }
   }
