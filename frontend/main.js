@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FirstPersonControls } from './FirstPersonControls.js';
+import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
 import { Graveyard } from './grave.js';
 import { UserManager } from './userManager.js';
 // Set up the scene, camera, and renderer
@@ -20,8 +20,9 @@ scene.add(icosahedron);
 
 
 // Add lighting
-const light = new THREE.HemisphereLight(0xffffff, 1);
-scene.add(light);
+const hemilight = new THREE.HemisphereLight(0xffffff, 1);
+const light = new THREE.PointLight(0xffffff, 1, 30, 2);
+scene.add(hemilight, light);
 
 // Set initial camera position
 camera.position.y = 1;
@@ -77,8 +78,8 @@ export function animate() {
 }
 
 // Initialize FirstPersonControls
-export const controls = new FirstPersonControls(camera, renderer.domElement);
-
+// export const controls = new FirstPersonControls(camera, renderer.domElement);
+export const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1, light);
 animate();
 
 // Handle window resizing

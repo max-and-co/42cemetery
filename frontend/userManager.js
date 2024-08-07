@@ -43,7 +43,6 @@ export class UserManager {
 		  const messageData = JSON.parse(event.data);
 		  const messageString = messageData.message;
 		  const data = JSON.parse(messageString);
-		  console.log(data.message);
 		  if (data.message === 'disconnect') {
 			console.log("User disconnected:", data.id);
 			this.removeUser(data.id);
