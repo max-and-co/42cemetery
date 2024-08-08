@@ -134,18 +134,17 @@ export class GroundFirstPersonControls {
 	}
   
 	onMouseMove(event) {
-	  if (document.pointerLockElement === this.domElement) {
-		this.mouseX -= event.movementX * this.mouseSensitivity;
-		this.mouseY -= event.movementY * this.mouseSensitivity;
-  
-		// Clamp vertical rotation
-		this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
-  
-		this.camera.rotation.order = 'YXZ';
-		this.camera.rotation.y = this.mouseX;
-		this.camera.rotation.x = this.mouseY;
+		if (document.pointerLockElement === this.domElement) {
+		  this.mouseX -= event.movementX * this.mouseSensitivity;
+		  this.mouseY -= event.movementY * this.mouseSensitivity;
+	
+		  // Clamp vertical rotation
+		  this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
+	
+		  // Update the camera rotation in a different order
+		  this.camera.rotation.set(this.mouseY, this.mouseX, 0, 'YXZ');
+		}
 	  }
-	}
   
 	onKeyDown(event) {
 	  switch (event.code) {

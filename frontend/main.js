@@ -60,17 +60,21 @@ export function animate() {
     const message = JSON.stringify({
       id: userManager.id,
       user: {
-        id: userLoggedData.id,
-        login: userLoggedData.login,
-        image: userLoggedData.image,
-        color: userColor
+      id: userLoggedData.id,
+      login: userLoggedData.login,
+      image: userLoggedData.image,
+      color: userColor
       },
       position: {
-        x: camera.position.x,
-        y: camera.position.y,
-        z: camera.position.z
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z
       },
-      rotation: camera.rotation.y,
+      rotation: {
+      x: camera.rotation.x,
+      y: camera.rotation.y,
+      z: camera.rotation.z
+      }
     });
     userManager.safeSend(message);
   }
