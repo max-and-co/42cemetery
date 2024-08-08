@@ -81,30 +81,41 @@ async def exchange_token(request: Request):
 
     return JSONResponse(content=user_data)
 
-
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
         self.connection_count = 0
+        self.available_ids = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections.append(websocket)
-        self.connection_count += 1
+
+        # Check if there are any available IDs
+        if self.available_ids:
+            client_id = self.available_ids.pop(0)  # Reuse the first available ID
+        else:
+            self.connection_count += 1
+            client_id = self.connection_count  # Assign a new ID
+
+        self.active_connections.append((client_id, websocket))
         
         # Send initial connection info to the new client
         connection_info = {
             "type": "connection_info",
-            "client_id": str(self.connection_count),
+            "client_id": str(client_id),
             "total_connections": len(self.active_connections)
         }
         await websocket.send_json(connection_info)
     
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        for connection in self.active_connections:
+            if connection[1] == websocket:
+                self.active_connections.remove(connection)
+                self.available_ids.append(connection[0])  # Make the ID available again
+                break
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
+        for _, connection in self.active_connections:
             await connection.send_text(message)
 
 manager = ConnectionManager()
@@ -118,7 +129,6 @@ async def websocket_endpoint(websocket: WebSocket):
             await manager.broadcast(json.dumps({"message": data}))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        await manager.broadcast(json.dumps({"message": "A user has left the game"}))
 
 # Keep your existing HTTP endpoints here
 @app.get("/")
