@@ -84,54 +84,41 @@ async def exchange_token(request: Request):
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.active_connections: List[WebSocket] = []
         self.connection_count = 0
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
+        self.active_connections.append(websocket)
         self.connection_count += 1
-        client_id = str(self.connection_count)
-        self.active_connections[client_id] = websocket
         
         # Send initial connection info to the new client
         connection_info = {
             "type": "connection_info",
-            "client_id": client_id,
+            "client_id": str(self.connection_count),
             "total_connections": len(self.active_connections)
         }
         await websocket.send_json(connection_info)
-        
-        # Broadcast new user connection to all clients
-        await self.broadcast(json.dumps({
-            "type": "user_connected",
-            "client_id": client_id
-        }))
-        
-        return client_id
-
-    def disconnect(self, client_id: str):
-        if client_id in self.active_connections:
-            del self.active_connections[client_id]
+    
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections.values():
+        for connection in self.active_connections:
             await connection.send_text(message)
 
 manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    client_id = await manager.connect(websocket)
+    await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             await manager.broadcast(json.dumps({"message": data}))
     except WebSocketDisconnect:
-        manager.disconnect(client_id)
-        await manager.broadcast(json.dumps({
-            "type": "user_disconnected",
-            "client_id": client_id
-        }))
+        manager.disconnect(websocket)
+        await manager.broadcast(json.dumps({"message": "A user has left the game"}))
 
 # Keep your existing HTTP endpoints here
 @app.get("/")

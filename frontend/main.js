@@ -29,13 +29,13 @@ camera.position.y = 10;
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
-    console.log('Camera position:', camera.position);
     userManager.socket.close();
   }
 });
 
 export let userManager;
 export let userLoggedData;
+const userColor = Math.random() * 0xffffff;
 
 // Function to initialize the user system
 export function initializeUserSystem(localUserData) {
@@ -62,7 +62,8 @@ export function animate() {
       user: {
         id: userLoggedData.id,
         login: userLoggedData.login,
-        image: userLoggedData.image
+        image: userLoggedData.image,
+        color: userColor
       },
       position: {
         x: camera.position.x,

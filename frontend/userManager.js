@@ -49,7 +49,7 @@ export class UserManager {
 			case 'user_connected':
 				this.handleUserConnected(messageData);
 				break;
-				case 'user_disconnected':
+			case 'user_disconnected':
 				this.handleUserDisconnected(messageData);
 				break;
 			default:
@@ -60,7 +60,6 @@ export class UserManager {
 		this.socket.onclose = (event) => {
 			console.log('WebSocket disconnected:', event.reason);
 			this.isConnected = false;
-			this.safeSend(JSON.stringify({ id: this.id, message: 'disconnect' }));
 			setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
 		};
 		
@@ -74,7 +73,6 @@ export class UserManager {
 		this.id = data.client_id;
 		console.log(`Connected as client ${this.id}`);
 		console.log(`Total connections: ${data.total_connections}`);
-	// You can add more logic here, like initializing the local user
 	}
 
 	handleUserConnected(data) {

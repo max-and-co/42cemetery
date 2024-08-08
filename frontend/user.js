@@ -6,6 +6,7 @@ export class User {
         this.id = userData.id;
         this.login = userData.login;
         this.image = userData.image;
+        this.color = userData.color;
         // Add other user properties as needed
 
         this.frame = null;
@@ -13,7 +14,7 @@ export class User {
     }
 
     init() {
-        this.createsphere();
+        this.createSphere();
         this.create3DFrame();
     }
 
@@ -21,9 +22,9 @@ export class User {
 		scene.remove(this.sphere);
 	}
 
-    createsphere() {
+    createSphere() {
         const geometry = new THREE.SphereGeometry(1, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
+        const material = new THREE.MeshBasicMaterial({ color: this.color });
         this.sphere = new THREE.Mesh(geometry, material);
         scene.add(this.sphere);
     }
@@ -32,7 +33,7 @@ export class User {
         const texture = new THREE.TextureLoader().load(this.image.link);
         const material = new THREE.MeshBasicMaterial({ map: texture });
         this.frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.1), material);
-        this.frame.position.y = 1;
+        this.frame.position.y = 0; // Position the frame above the sphere
         this.frame.position.z = -0.95; // Position the frame above the sphere
         this.sphere.add(this.frame); // Add the frame as a child of the sphere
     }
