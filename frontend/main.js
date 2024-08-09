@@ -13,11 +13,41 @@ document.getElementById('app').appendChild(renderer.domElement);
 // Create the icosahedron
 const geometry = new THREE.IcosahedronGeometry(1, 0);
 const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-const gridhelper = new THREE.GridHelper(400, 400);
-scene.add(gridhelper);
 const icosahedron = new THREE.Mesh(geometry, material);
 scene.add(icosahedron);
 
+const gridhelper = new THREE.GridHelper(400, 400);
+scene.add(gridhelper);
+// Define the 2D shape of the triangle
+const triangleShape = new THREE.Shape();
+triangleShape.moveTo(0, -1);     // First vertex at the bottom
+triangleShape.lineTo(-1, 1);   // Second vertex at the top left
+triangleShape.lineTo(1, 1);    // Third vertex at the top right
+triangleShape.lineTo(0, -1);     // Close the path back to the first vertex
+
+// Set the extrusion settings
+const extrudeSettings = {
+    depth: 0.5,           // Thickness of the triangle
+    bevelEnabled: false   // Disable bevel for a clean extrusion
+};
+
+const triangleGeometry = new THREE.ExtrudeGeometry(triangleShape, extrudeSettings);
+const triangleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+const thickTriangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+const triangleHeight = 5;
+scene.add(thickTriangleMesh);
+
+// Variables to control the floating effect
+const floatAmplitude = 0.5; // How much the triangle moves up and down
+const floatSpeed = 0.05;    // Speed of the floating motion
+let timeCounter = 0;        // Counter to simulate time
+
+function animateFloatingTriangle() {
+    timeCounter += floatSpeed;
+    thickTriangleMesh.position.y = triangleHeight + Math.sin(timeCounter) * floatAmplitude;
+}
+
+// Start the animation
 
 // Add lighting
 const hemilight = new THREE.HemisphereLight(0xffffff, 1);
@@ -47,6 +77,7 @@ export function initializeUserSystem(localUserData) {
 // Modified animation loop
 export function animate() {
   requestAnimationFrame(animate);
+  animateFloatingTriangle();
 
   // Update controls
   controls.update();
