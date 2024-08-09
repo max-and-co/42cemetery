@@ -1,28 +1,30 @@
 import * as THREE from 'three';
+import { graveMarker } from './graveMarker.js';
 
 export class Graveyard {
     constructor(scene, jsonData) {
-        const graves = [];
+        this.scene = scene;
+        this.graves = [];
+        this.filteredUsers = this.filterUsers(jsonData);
+        this.graveNumber = this.filteredUsers.length;
         const spacing = 8;
-        const filteredUsers = this.filterUsers(jsonData);
-        const graveNumber = filteredUsers.length;
 
         let placedGraves = 0;
         let currentRadius = 12;
-        
-        while (placedGraves < graveNumber) {
+
+        while (placedGraves < this.graveNumber) {
             const circumference = 2 * Math.PI * currentRadius;
             const gravesInThisCircle = Math.floor(circumference / spacing);
-            
-            for (let i = 0; i < gravesInThisCircle && placedGraves < graveNumber; i++) {
-                const userData = filteredUsers[placedGraves];
+
+            for (let i = 0; i < gravesInThisCircle && placedGraves < this.graveNumber; i++) {
+                const userData = this.filteredUsers[placedGraves];
                 const angle = (i / gravesInThisCircle) * 2 * Math.PI;
                 const position = {
                     x: Math.cos(angle) * currentRadius,
                     y: 0,
                     z: Math.sin(angle) * currentRadius
                 };
-                
+
                 let type;
                 if (userData.user['staff?'])
                     type = 'Staff';
@@ -36,17 +38,42 @@ export class Graveyard {
                     type = 'Blackholed';
                 }
                 const yRotation = Math.random() * Math.PI * 2;
-                const imageUrl = userData.user.image.versions.small;
-                
-                const grave = new Grave(scene, position, type, yRotation, imageUrl);
-                graves.push(grave);
-                
+
+                const grave = new Grave(scene, position, type, yRotation, userData);
+                this.graves.push(grave);
+
                 placedGraves++;
             }
-            
+
             currentRadius += spacing;
         }
         this.countUserTypes(jsonData);
+    }
+
+    // Method to clear existing markers
+    clearMarkers() {
+        this.graves.forEach(grave => {
+            if (grave.marker) {
+                this.scene.remove(grave.marker.thickTriangleMesh);
+                grave.marker = null;
+            }
+        });
+    }
+
+    markGrave(inputLogin) {
+        const availableGraves = this.graves.filter(grave => !grave.marker);
+        const targetGrave = availableGraves.find(grave => grave.login === inputLogin);
+        if (!targetGrave) {
+            console.log(`Grave with login ${inputLogin} not found or is already marked`);
+            return;
+        }
+
+        targetGrave.hasArrow = true;
+        const marker = new graveMarker(this.scene, targetGrave.log);
+        marker.setPosition(targetGrave.position);
+        this.clearMarkers();
+        targetGrave.marker = marker; // Track the new marker
+        console.log('Marked:', targetGrave.login);
     }
 
     filterUsers(jsonData) {
@@ -66,8 +93,6 @@ export class Graveyard {
         };
         let totalUsers = 0;
         const filteredUsers = this.filterUsers(jsonData);
-        // const removedUsers = jsonData.users.filter(userData => !filteredUsers.includes(userData));
-        // removedUsers.forEach(user => console.log(user.user.login)); // Uncomment both lines to see the list of users removed from the graveyard
     
         filteredUsers.forEach(userData => {
             let type;
@@ -98,15 +123,18 @@ export class Graveyard {
 
 
 export class Grave extends THREE.Object3D {
-    constructor(scene, position, type, yRotation, imageUrl) {
+    constructor(scene, position, type, yRotation, userData) {
         super();
+        this.marker = null;
+        this.login = userData.user.login;
+        this.imageUrl = userData.user.image.versions.small;
 
         const boxGeometry = new THREE.BoxGeometry(1, 2, 2);
         const cylinderGeometry = new THREE.CylinderGeometry(2, 2, 0.1, 32);
 
         // Load texture for the cube
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(imageUrl, (texture) => {
+        textureLoader.load(this.imageUrl, (texture) => {
             const cubeMaterial = new THREE.MeshStandardMaterial({ map: texture });
             const cube = new THREE.Mesh(boxGeometry, cubeMaterial);
             cube.position.set(0, 1, 0);  // Slightly above the base

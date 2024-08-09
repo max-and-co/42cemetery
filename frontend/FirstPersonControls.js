@@ -52,6 +52,8 @@ export class FirstPersonControls {
 	}
   
 	onKeyDown(event) {
+	if (event.target.tagName === 'INPUT')
+		return;
 	  switch (event.code) {
 		case 'KeyW': this.keys.forward = true; break;
 		case 'KeyS': this.keys.backward = true; break;
@@ -147,6 +149,8 @@ export class GroundFirstPersonControls {
 	  }
   
 	onKeyDown(event) {
+	if (event.target.tagName === 'INPUT')
+		return;
 	  switch (event.code) {
 		case 'KeyW': this.keys.forward = true; break;
 		case 'KeyS': this.keys.backward = true; break;

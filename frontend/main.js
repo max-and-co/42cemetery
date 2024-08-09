@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
-import { Graveyard } from './grave.js';
+import { graveMarker } from './graveMarker.js';
+import { Grave, Graveyard } from './grave.js';
 import { UserManager } from './userManager.js';
 // Set up the scene, camera, and renderer
 export const scene = new THREE.Scene();
@@ -18,36 +19,6 @@ scene.add(icosahedron);
 
 const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
-// Define the 2D shape of the triangle
-const triangleShape = new THREE.Shape();
-triangleShape.moveTo(0, -1);     // First vertex at the bottom
-triangleShape.lineTo(-1, 1);   // Second vertex at the top left
-triangleShape.lineTo(1, 1);    // Third vertex at the top right
-triangleShape.lineTo(0, -1);     // Close the path back to the first vertex
-
-// Set the extrusion settings
-const extrudeSettings = {
-    depth: 0.5,           // Thickness of the triangle
-    bevelEnabled: false   // Disable bevel for a clean extrusion
-};
-
-const triangleGeometry = new THREE.ExtrudeGeometry(triangleShape, extrudeSettings);
-const triangleMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-const thickTriangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
-const triangleHeight = 5;
-scene.add(thickTriangleMesh);
-
-// Variables to control the floating effect
-const floatAmplitude = 0.5; // How much the triangle moves up and down
-const floatSpeed = 0.05;    // Speed of the floating motion
-let timeCounter = 0;        // Counter to simulate time
-
-function animateFloatingTriangle() {
-    timeCounter += floatSpeed;
-    thickTriangleMesh.position.y = triangleHeight + Math.sin(timeCounter) * floatAmplitude;
-}
-
-// Start the animation
 
 // Add lighting
 const hemilight = new THREE.HemisphereLight(0xffffff, 1);
@@ -77,7 +48,6 @@ export function initializeUserSystem(localUserData) {
 // Modified animation loop
 export function animate() {
   requestAnimationFrame(animate);
-  animateFloatingTriangle();
 
   // Update controls
   controls.update();
@@ -113,9 +83,22 @@ export function animate() {
   renderer.render(scene, camera);
 }
 
+document.addEventListener('keydown', validateInput);
+
+function validateInput(event) {
+  if (event.key === "Enter") {
+    const inputField = document.getElementById("inputField");
+    const inputValue = inputField.value;
+
+    graveyard.markGrave(inputValue);
+    inputField.value = "";
+    inputField.blur(); // Lose focus of the input bar
+  }
+}
+
 // Initialize FirstPersonControls
-// export const controls = new FirstPersonControls(camera, renderer.domElement);
-export const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1, light);
+export const controls = new FirstPersonControls(camera, renderer.domElement);
+// export const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1, light);
 
 animate();
 
@@ -126,10 +109,15 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+let graveyard;
+
 fetch('data.json')
   .then(response => response.json())
   .then(jsonData => {
     // Create the graveyard
-    new Graveyard(scene, jsonData);
+    graveyard = new Graveyard(scene, jsonData);
   })
   .catch(error => console.error('Error loading JSON:', error));
+
+
+

@@ -34,8 +34,6 @@ async function redirectTo42Auth() {
   if (window.location.pathname === '/oauth_callback') {
     initializeUserSystem(await handleOAuthCallback());
   }
-// Attach this function to your button's click event
-document.getElementById('auth-button').addEventListener('click', redirectTo42Auth);
 
 if (window.location.pathname !== '/oauth_callback') {
     redirectTo42Auth();
