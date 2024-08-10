@@ -1,9 +1,10 @@
+import { mainCamera } from './main.js';
 import { User } from './user.js';
 
 export class UserManager {
-	constructor() {
+	constructor(localUserData) {
 		this.users = [];
-		this.localUser = null;
+		this.localUser = localUserData;
 		this.socket = null;
 		this.id = null;
 		this.isConnected = false;
@@ -102,5 +103,6 @@ export class UserManager {
 		  this.socket.send(message);
 		}
 	}
-  }
+
+}
   

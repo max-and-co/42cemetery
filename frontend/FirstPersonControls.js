@@ -6,7 +6,7 @@ export class FirstPersonControls {
 	  this.domElement = domElement;
   
 	  // Movement speed
-	  this.moveSpeed = 1;
+	  this.moveSpeed = 0.2;
   
 	  // Mouse sensitivity
 	  this.mouseSensitivity = 0.002;

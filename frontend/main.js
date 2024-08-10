@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
-import { graveMarker } from './graveMarker.js';
 import { Grave, Graveyard } from './grave.js';
 import { UserManager } from './userManager.js';
-// Set up the scene, camera, and renderer
+import Minimap from './minimap.js';
+// Set up the scene, mainCamera, and renderer
 export const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+export const mainCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -19,14 +20,13 @@ scene.add(icosahedron);
 
 const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
-
 // Add lighting
 const hemilight = new THREE.HemisphereLight(0xffffff, 1);
 const light = new THREE.PointLight(0xffffff, 1, 30, 2);
 scene.add(hemilight, light);
 
-// Set initial camera position
-camera.position.y = 10;
+// Set initial mainCamera position
+mainCamera.position.y = 10;
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
@@ -36,12 +36,15 @@ document.addEventListener('keydown', (event) => {
 
 export let userManager;
 export let userLoggedData;
+export let minimap;
 const userColor = Math.random() * 0xffffff;
 
 // Function to initialize the user system
 export function initializeUserSystem(localUserData) {
-  userManager = new UserManager();
+  userManager = new UserManager(localUserData);
   userManager.connectWebSocket();
+  // console.log(userManager.localUser);
+  minimap = new Minimap();
   userLoggedData = localUserData;
 }
 
@@ -67,20 +70,21 @@ export function animate() {
       color: userColor
       },
       position: {
-      x: camera.position.x,
-      y: camera.position.y,
-      z: camera.position.z
+      x: mainCamera.position.x,
+      y: mainCamera.position.y,
+      z: mainCamera.position.z
       },
       rotation: {
-      x: camera.rotation.x,
-      y: camera.rotation.y,
-      z: camera.rotation.z
+      x: mainCamera.rotation.x,
+      y: mainCamera.rotation.y,
+      z: mainCamera.rotation.z
       }
     });
     userManager.safeSend(message);
   }
-
-  renderer.render(scene, camera);
+  if (minimap)
+    minimap.update();
+  renderer.render(scene, mainCamera);
 }
 
 document.addEventListener('keydown', validateInput);
@@ -97,15 +101,15 @@ function validateInput(event) {
 }
 
 // Initialize FirstPersonControls
-export const controls = new FirstPersonControls(camera, renderer.domElement);
-// export const controls = new GroundFirstPersonControls(camera, renderer.domElement, 1, light);
+export const controls = new FirstPersonControls(mainCamera, renderer.domElement);
+// export const controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
 
 animate();
 
 // Handle window resizing
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  mainCamera.aspect = window.innerWidth / window.innerHeight;
+  mainCamera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
