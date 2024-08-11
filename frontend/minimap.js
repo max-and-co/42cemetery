@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mainCamera, scene, userManager } from './main.js';
+import { localUserColor, mainCamera, scene, userManager } from './main.js';
 
 class Minimap {
     constructor() {
@@ -20,11 +20,33 @@ class Minimap {
         // this.minimapHelper = new THREE.CameraHelper(this.minimapCamera);
         // scene.add(this.minimapHelper);
 
-        const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-        const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        this.playerMarker = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        scene.add(this.playerMarker);
+ 
+        // Create a group to hold both the triangle and the text
+        this.group = new THREE.Group();
 
+        // Define the 2D shape of the triangle
+        const triangleShape = new THREE.Shape();
+        triangleShape.moveTo(0, -1);     // First vertex at the bottom
+        triangleShape.lineTo(-1, 1);   // Second vertex at the top left
+        triangleShape.lineTo(0, 0.5);
+        triangleShape.lineTo(1, 1);    // Third vertex at the top right
+        triangleShape.lineTo(0, -1);     // Close the path back to the first vertex
+
+        // Set the extrusion settings
+        const extrudeSettings = {
+            depth: 0.5,           // Thickness of the triangle
+            bevelEnabled: false   // Disable bevel for a clean extrusion
+        };
+        // Rotate the triangle 90 degrees in the x-axis
+        const triangleGeometry = new THREE.ExtrudeGeometry(triangleShape, extrudeSettings);
+        const triangleMaterial = new THREE.MeshBasicMaterial({ color: localUserColor });
+        this.thickTriangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+        this.thickTriangleMesh.rotation.x = Math.PI / 2;
+
+        // Add the triangle mesh to the group
+        this.group.add(this.thickTriangleMesh);
+        scene.add(this.group); 
+        
         this.minimapRenderer = new THREE.WebGLRenderer();
         this.minimapRenderer.setSize(window.innerHeight * 0.35, window.innerHeight * 0.35);
         this.minimapRenderer.setClearColor(0x000000, 0);
@@ -38,7 +60,8 @@ class Minimap {
     }
 
     update() {
-        this.playerMarker.position.set(mainCamera.position.x, 50, mainCamera.position.z);
+        this.group.rotation.y = mainCamera.rotation.y;
+        this.group.position.set(mainCamera.position.x, 50, mainCamera.position.z);
         this.minimapCamera.position.set(mainCamera.position.x, 100, mainCamera.position.z);
         this.minimapRenderer.render(scene, this.minimapCamera);
     }

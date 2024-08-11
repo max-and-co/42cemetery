@@ -38,6 +38,7 @@ export class UserManager {
 		this.socket.onopen = () => {
 			console.log('WebSocket connected');
 			this.isConnected = true;
+			this.socket.send(JSON.stringify({user_data: this.localUser}));
 		};
   
 		this.socket.onmessage = (event) => {
@@ -53,6 +54,9 @@ export class UserManager {
 			case 'user_disconnected':
 				this.handleUserDisconnected(messageData);
 				break;
+			case 'existing_user':
+				this.handleExistingUser(messageData);
+				break;
 			default:
 				this.handleGameMessage(messageData);
 			}
@@ -61,7 +65,7 @@ export class UserManager {
 		this.socket.onclose = (event) => {
 			console.log('WebSocket disconnected:', event.reason);
 			this.isConnected = false;
-			setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
+			// setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
 		};
 		
 		this.socket.onerror = (error) => {
@@ -70,16 +74,24 @@ export class UserManager {
 		};
 	}
 			
+	
+
 	handleConnectionInfo(data) {
 		this.id = data.client_id;
 		console.log(`Connected as client ${this.id}`);
 		console.log(`Total connections: ${data.total_connections}`);
 	}
 
+	handleExistingUser(data) {
+		if (data.client_id !== this.id) {
+			this.users[data.client_id] = this.createUser(data.existing_users_data);
+		}
+	}
+
 	handleUserConnected(data) {
 		if (data.client_id !== this.id) {
 			console.log(`User ${data.client_id} has connected`);
-			// You can add more logic here, like creating a new user object
+			this.users[data.client_id] = this.createUser(data.user_data);
 		}
 	}
 
@@ -92,8 +104,6 @@ export class UserManager {
 		const messageString = messageData.message;
 		const data = JSON.parse(messageString);
 		if (data.id !== this.id) {
-			if (!this.users[data.id])
-				this.users[data.id] = this.createUser(data.user);
 			this.users[data.id].updatePosition(data.position.x, data.position.y, data.position.z, data.rotation);
 		}  
 	}

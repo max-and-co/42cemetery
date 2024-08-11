@@ -29,7 +29,7 @@ export class graveMarker {
 
         // Add the triangle mesh to the group
         this.group.add(this.thickTriangleMesh);
-
+        
         // Create text
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {

@@ -16,7 +16,7 @@ document.getElementById('app').appendChild(renderer.domElement);
 const geometry = new THREE.IcosahedronGeometry(1, 0);
 const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 const icosahedron = new THREE.Mesh(geometry, material);
-scene.add(icosahedron);
+// scene.add(icosahedron);
 
 const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
@@ -32,12 +32,15 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
     userManager.socket.close();
   }
+  if (event.key === 'o') {
+    userManager.connectWebSocket();
+  }
 });
 
 export let userManager;
 export let userLoggedData;
 export let minimap;
-const userColor = Math.random() * 0xffffff;
+export const localUserColor = Math.random() * 0xffffff;
 
 // Function to initialize the user system
 export function initializeUserSystem(localUserData) {
@@ -63,22 +66,8 @@ export function animate() {
   if (userManager && userManager.isConnected && userManager.id) {
     const message = JSON.stringify({
       id: userManager.id,
-      user: {
-      id: userLoggedData.id,
-      login: userLoggedData.login,
-      image: userLoggedData.image,
-      color: userColor
-      },
-      position: {
-      x: mainCamera.position.x,
-      y: mainCamera.position.y,
-      z: mainCamera.position.z
-      },
-      rotation: {
-      x: mainCamera.rotation.x,
-      y: mainCamera.rotation.y,
-      z: mainCamera.rotation.z
-      }
+      position: mainCamera.position,
+      rotation: mainCamera.rotation,
     });
     userManager.safeSend(message);
   }
