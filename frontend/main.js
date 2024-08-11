@@ -67,9 +67,9 @@ export function animate() {
     const message = JSON.stringify({
       id: userManager.id,
       position: {
-      x: mainCamera.position.x,
-      y: mainCamera.position.y,
-      z: mainCamera.position.z
+        x: mainCamera.position.x,
+        y: mainCamera.position.y,
+        z: mainCamera.position.z
       },
       rotation: {
       x: mainCamera.rotation.x,

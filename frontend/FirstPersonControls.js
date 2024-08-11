@@ -106,8 +106,7 @@ export class FirstPersonControls {
 	  this.canDash = true;
 	  this.isDashing = false;
 	  this.dashSpeed = 1;
-	  this.dashTime = 0.2;  // Dash duration in seconds
-	  this.dashTimer = 0;
+	  this.dashDirection = false;
   
 	  // Mouse sensitivity
 	  this.mouseSensitivity = 0.002;
@@ -181,20 +180,25 @@ export class FirstPersonControls {
 		case 'ShiftLeft': this.keys.sprint = false; break;
 	  }
 	}
+
+	calculateDirection() {
+			// Create a forward direction vector
+			const direction = new THREE.Vector3();
+
+			if (this.keys.forward) direction.z -= 1;
+			if (this.keys.backward) direction.z += 1;
+			if (this.keys.left) direction.x -= 1;
+			if (this.keys.right) direction.x += 1;
+
+			direction.normalize();
+			direction.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
+
+			return direction;
+		}
   
 	move() {
 	  // Calculate movement direction
-	  const direction = new THREE.Vector3();
-  
-	  if (this.keys.forward) direction.z -= 1;
-	  if (this.keys.backward) direction.z += 1;
-	  if (this.keys.left) direction.x -= 1;
-	  if (this.keys.right) direction.x += 1;
-  
-	  direction.normalize();
-  
-	  // Rotate direction based on camera's rotation
-	  direction.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
+	  const direction = this.calculateDirection();
   
 	  // Apply movement to camera
 	  this.camera.position.x += direction.x * this.moveSpeed;
@@ -236,14 +240,18 @@ export class FirstPersonControls {
 	}
 
 	dash() {
-		if (this.keys.jump && this.canDash && this.isJumping) {
-			const forwardDirection = new THREE.Vector3(0, 0, -1);
-			forwardDirection.applyEuler(this.camera.rotation);
-			this.camera.position.add(forwardDirection.multiplyScalar(this.dashSpeed));
+		if (this.keys.jump && this.canDash && this.isJumping && !this.isDashing) {
+			this.isDashing = true;
 			setTimeout(() => {
-				if (this.isJumping)
-					this.canDash = false;
+				this.isDashing = false;
 			}, 200);
+		} 
+		else if (this.isDashing) {
+			if (this.canDash) {
+				this.dashDirection = this.calculateDirection();
+				this.canDash = false;
+			}
+			this.camera.position.add(this.dashDirection.multiplyScalar(this.dashSpeed));
 		}
 	}
 
