@@ -100,26 +100,25 @@ class ConnectionManager:
         self.user_data_store[client_id] = user_data
         self.active_connections.append((client_id, websocket))
 
-        # Send initial connection info to the new client
-        connection_info = {
-            "type": "connection_info",
-            "client_id": str(client_id),
-            "total_connections": len(self.active_connections)
-        }
-        await websocket.send_json(connection_info)
-
         # Send all existing users' data to the new client
+        existing_users = []
         for existing_client_id, existing_user_data in self.user_data_store.items():
-            if existing_client_id != client_id:  # Don't send the new user's own data
-                await websocket.send_json({
-                    "type": "existing_user",
+            if existing_client_id != client_id:  # Don't include the new user's own data
+                existing_users.append({
                     "client_id": str(existing_client_id),
-                    "existing_users_data": existing_user_data
+                    "user_data": existing_user_data
                 })
+
+        await websocket.send_json({
+            "client_id": str(client_id),
+            "total_connections": len(self.active_connections),
+            "type": "local_connection_infos",
+            "users": existing_users
+        })
 
         # Broadcast the new user's data to all other clients
         await self.broadcast(json.dumps({
-            "type": "user_connected",
+            "type": "remote_user_connected",
             "client_id": str(client_id),
             "user_data": user_data
         }))
@@ -131,6 +130,10 @@ class ConnectionManager:
                 self.active_connections.remove(connection)
                 self.available_ids.append(client_id)  # Make the ID available again
                 del self.user_data_store[client_id]  # Remove user data from the store
+                await self.broadcast(json.dumps({
+                    "type": "remote_user_disconnected",
+                    "client_id": str(client_id),
+                })) 
                 break
 
     async def broadcast(self, message: str):

@@ -66,8 +66,16 @@ export function animate() {
   if (userManager && userManager.isConnected && userManager.id) {
     const message = JSON.stringify({
       id: userManager.id,
-      position: mainCamera.position,
-      rotation: mainCamera.rotation,
+      position: {
+      x: mainCamera.position.x,
+      y: mainCamera.position.y,
+      z: mainCamera.position.z
+      },
+      rotation: {
+      x: mainCamera.rotation.x,
+      y: mainCamera.rotation.y,
+      z: mainCamera.rotation.z
+      }
     });
     userManager.safeSend(message);
   }
@@ -90,8 +98,8 @@ function validateInput(event) {
 }
 
 // Initialize FirstPersonControls
-export const controls = new FirstPersonControls(mainCamera, renderer.domElement);
-// export const controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
+// export const controls = new FirstPersonControls(mainCamera, renderer.domElement);
+export const controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
 
 animate();
 

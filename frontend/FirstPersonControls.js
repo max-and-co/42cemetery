@@ -89,7 +89,7 @@ export class FirstPersonControls {
 	}
   }
 
-export class GroundFirstPersonControls {
+  export class GroundFirstPersonControls {
 	constructor(camera, domElement, floorHeight = 0, light) {
 	  this.camera = camera;
 	  this.domElement = domElement;
@@ -97,9 +97,17 @@ export class GroundFirstPersonControls {
 	  this.light = light;
   
 	  // Movement speed
-	  this.moveSpeed = 0.1;
+	  this.baseSpeed = 0.1;
+	  this.moveSpeed = this.baseSpeed;
 	  this.jumpSpeed = 0.15;
 	  this.gravity = 0.004;
+	  this.isSprinting = false;
+	  this.sprintSpeed = this.baseSpeed * 2;
+	  this.canDash = true;
+	  this.isDashing = false;
+	  this.dashSpeed = 1;
+	  this.dashTime = 0.2;  // Dash duration in seconds
+	  this.dashTimer = 0;
   
 	  // Mouse sensitivity
 	  this.mouseSensitivity = 0.002;
@@ -118,6 +126,8 @@ export class GroundFirstPersonControls {
 		left: false,
 		right: false,
 		jump: false,
+		sprint: false,
+		dash: false,
 	  };
   
 	  // Mouse state
@@ -146,7 +156,7 @@ export class GroundFirstPersonControls {
 		  // Update the camera rotation in a different order
 		  this.camera.rotation.set(this.mouseY, this.mouseX, 0, 'YXZ');
 		}
-	  }
+	}
   
 	onKeyDown(event) {
 	if (event.target.tagName === 'INPUT')
@@ -157,6 +167,7 @@ export class GroundFirstPersonControls {
 		case 'KeyA': this.keys.left = true; break;
 		case 'KeyD': this.keys.right = true; break;
 		case 'Space': this.keys.jump = true; break;
+		case 'ShiftLeft': this.keys.sprint = true; break;
 	  }
 	}
   
@@ -167,10 +178,11 @@ export class GroundFirstPersonControls {
 		case 'KeyA': this.keys.left = false; break;
 		case 'KeyD': this.keys.right = false; break;
 		case 'Space': this.keys.jump = false; break;
+		case 'ShiftLeft': this.keys.sprint = false; break;
 	  }
 	}
   
-	update() {
+	move() {
 	  // Calculate movement direction
 	  const direction = new THREE.Vector3();
   
@@ -188,24 +200,57 @@ export class GroundFirstPersonControls {
 	  this.camera.position.x += direction.x * this.moveSpeed;
 	  this.camera.position.z += direction.z * this.moveSpeed;
   
-	  // Handle jumping
-	  if (this.keys.jump && !this.isJumping) {
+	  this.light.position.copy(this.camera.position);
+	}
+  
+	jump() {
+	if (this.keys.jump && !this.isJumping) {
+		this.keys.jump = false;
 		this.isJumping = true;
 		this.jumpVelocity = this.jumpSpeed;
 	  }
-  
-	  if (this.isJumping) {
+	  else if (this.isJumping) {
 		this.camera.position.y += this.jumpVelocity;
 		this.jumpVelocity -= this.gravity;
   
 		if (this.camera.position.y <= this.floorHeight) {
 		  this.camera.position.y = this.floorHeight;
 		  this.isJumping = false;
+		  this.canDash = true;
 		  this.jumpVelocity = 0;
 		}
-	  } else {
-		this.camera.position.y = this.floorHeight;
-	  }
-	  this.light.position.copy(this.camera.position);
+	  } else this.camera.position.y = this.floorHeight;
 	}
-  }
+
+	sprint() {
+		if (this.isJumping)
+			return;
+		if (this.keys.sprint && !this.isSprinting) {
+			this.isSprinting = true;
+				this.moveSpeed = this.sprintSpeed;
+		}
+		else if (!this.keys.sprint && this.isSprinting) {
+			this.moveSpeed = this.baseSpeed;
+			this.isSprinting = false;
+		}
+	}
+
+	dash() {
+		if (this.keys.jump && this.canDash && this.isJumping) {
+			const forwardDirection = new THREE.Vector3(0, 0, -1);
+			forwardDirection.applyEuler(this.camera.rotation);
+			this.camera.position.add(forwardDirection.multiplyScalar(this.dashSpeed));
+			setTimeout(() => {
+				if (this.isJumping)
+					this.canDash = false;
+			}, 200);
+		}
+	}
+
+	update() {
+	  this.move();
+	  this.jump();
+	  this.sprint();
+	  this.dash();
+	}
+}

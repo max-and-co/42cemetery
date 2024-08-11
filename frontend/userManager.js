@@ -1,4 +1,4 @@
-import { mainCamera } from './main.js';
+import { localUserColor, mainCamera } from './main.js';
 import { User } from './user.js';
 
 export class UserManager {
@@ -8,6 +8,7 @@ export class UserManager {
 		this.socket = null;
 		this.id = null;
 		this.isConnected = false;
+		this.isConnecting = false;
   
 		window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
 	}
@@ -32,39 +33,43 @@ export class UserManager {
 	}
   
 	connectWebSocket() {
+		if (this.isConnected || this.isConnecting) {
+			console.warn('WebSocket connection attempt blocked: already connected or connecting');
+			return;
+		}
+		this.isConnecting = true;
 		console.log('Attempting to connect WebSocket');
 		this.socket = new WebSocket('ws://localhost:8080/ws');
 		
 		this.socket.onopen = () => {
 			console.log('WebSocket connected');
 			this.isConnected = true;
-			this.socket.send(JSON.stringify({user_data: this.localUser}));
+			this.isConnecting = false;
+			this.socket.send(JSON.stringify({ user_data: { ...this.localUser, color: localUserColor }}));
 		};
   
 		this.socket.onmessage = (event) => {
 		const messageData = JSON.parse(event.data);
 		
 		switch(messageData.type) {
-			case 'connection_info':
+			case 'local_connection_infos':
 				this.handleConnectionInfo(messageData);
 				break;
-			case 'user_connected':
-				this.handleUserConnected(messageData);
+			case 'remote_user_connected':
+				this.handleRemoteUserConnected(messageData);
 				break;
-			case 'user_disconnected':
-				this.handleUserDisconnected(messageData);
-				break;
-			case 'existing_user':
-				this.handleExistingUser(messageData);
+			case 'remote_user_disconnected':
+				this.handleRemoteUserDisconnected(messageData.client_id	);
 				break;
 			default:
-				this.handleGameMessage(messageData);
+				this.handleRemoteUserMessage(messageData);
 			}
 		};
 		
 		this.socket.onclose = (event) => {
 			console.log('WebSocket disconnected:', event.reason);
 			this.isConnected = false;
+			this.isConnecting = false;
 			// setTimeout(() => this.connectWebSocket(), 15000); // Attempt to reconnect after 5 seconds
 		};
 		
@@ -74,33 +79,27 @@ export class UserManager {
 		};
 	}
 			
-	
-
 	handleConnectionInfo(data) {
 		this.id = data.client_id;
-		console.log(`Connected as client ${this.id}`);
 		console.log(`Total connections: ${data.total_connections}`);
+		console.log(`Connected as client ${this.id}`);
+		for (const user of data.users)
+			this.users[user.client_id] = this.createUser(user.user_data);
 	}
 
-	handleExistingUser(data) {
-		if (data.client_id !== this.id) {
-			this.users[data.client_id] = this.createUser(data.existing_users_data);
-		}
-	}
-
-	handleUserConnected(data) {
+	handleRemoteUserConnected(data) {
 		if (data.client_id !== this.id) {
 			console.log(`User ${data.client_id} has connected`);
 			this.users[data.client_id] = this.createUser(data.user_data);
 		}
 	}
 
-	handleUserDisconnected(data) {
-		console.log(`User ${data.client_id} has disconnected`);
-		this.removeUser(data.client_id);
+	handleRemoteUserDisconnected(id) {
+		console.log(`User ${id} has disconnected`);
+		this.removeUser(id);
 	}
 
-	handleGameMessage(messageData) {
+	handleRemoteUserMessage(messageData) {
 		const messageString = messageData.message;
 		const data = JSON.parse(messageString);
 		if (data.id !== this.id) {
