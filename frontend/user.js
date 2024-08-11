@@ -5,6 +5,7 @@ export class User {
     constructor(userData) {
         this.id = userData.id;
         this.login = userData.login;
+        this.title = userData.title;
         this.image = userData.image;
         this.color = userData.color;
 
@@ -17,8 +18,8 @@ export class User {
         this.createParent();
         this.createSphere();
         this.create3DFrame();
-        this.createLabel('login', this.login, 2, 'white', 32);
-        this.createLabel('title', 'le boss', 1.5, 'pink', 20);
+        this.createLabel('login', this.login, 1.8, 'white', 32);
+        this.createLabel('title', this.title, 1.2, 'red', 10);
     }
 
     remove() {

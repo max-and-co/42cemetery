@@ -45,7 +45,19 @@ export class UserManager {
 			console.log('WebSocket connected');
 			this.isConnected = true;
 			this.isConnecting = false;
-			this.socket.send(JSON.stringify({ user_data: { ...this.localUser, color: localUserColor }}));
+		
+			const selectedTitleUser = this.localUser.titles_users.find(obj => obj.selected === true);
+			const selectedTitle = this.localUser.titles.find(title => title.id === selectedTitleUser.title_id);
+			selectedTitle.name = selectedTitle.name.replace('%login', '');
+		
+			// Send the user data with the correct title name
+			this.socket.send(JSON.stringify({ 
+				user_data: { 
+					...this.localUser, 
+					color: localUserColor, 
+					title: selectedTitle.name // Include the title name here
+				}
+			}));
 		};
   
 		this.socket.onmessage = (event) => {
@@ -81,6 +93,7 @@ export class UserManager {
 			
 	handleConnectionInfo(data) {
 		this.id = data.client_id;
+		console.log(this.localUser);
 		console.log(`Total connections: ${data.total_connections}`);
 		console.log(`Connected as client ${this.id}`);
 		for (const user of data.users)
