@@ -48,7 +48,6 @@ export class UserManager {
 		
 			const selectedTitleUser = this.localUser.titles_users.find(obj => obj.selected === true);
 			const selectedTitle = this.localUser.titles.find(title => title.id === selectedTitleUser.title_id);
-			selectedTitle.name = selectedTitle.name.replace('%login', '');
 		
 			// Send the user data with the correct title name
 			this.socket.send(JSON.stringify({ 

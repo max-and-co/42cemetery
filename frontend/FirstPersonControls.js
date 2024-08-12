@@ -105,8 +105,9 @@ export class FirstPersonControls {
 	  this.sprintSpeed = this.baseSpeed * 2;
 	  this.canDash = true;
 	  this.isDashing = false;
-	  this.dashSpeed = 1;
+	  this.dashSpeed = 0.8;
 	  this.dashDirection = false;
+	  this.dashDuration = 200;
   
 	  // Mouse sensitivity
 	  this.mouseSensitivity = 0.002;
@@ -244,7 +245,7 @@ export class FirstPersonControls {
 			this.isDashing = true;
 			setTimeout(() => {
 				this.isDashing = false;
-			}, 200);
+			}, this.dashDuration);
 		} 
 		else if (this.isDashing) {
 			if (this.canDash) {
