@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { deltaTime } from './main.js';
 
 export class FirstPersonControls {
 	constructor(camera, domElement) {
@@ -88,26 +89,27 @@ export class FirstPersonControls {
 	  this.camera.translateZ(direction.z * this.moveSpeed);
 	}
   }
-
   export class GroundFirstPersonControls {
 	constructor(camera, domElement, floorHeight = 0, light) {
+	  // Initialization code...
 	  this.camera = camera;
 	  this.domElement = domElement;
 	  this.floorHeight = floorHeight;
 	  this.light = light;
   
 	  // Movement speed
-	  this.baseSpeed = 0.1;
+	  this.baseSpeed = 5;
 	  this.moveSpeed = this.baseSpeed;
-	  this.jumpSpeed = 0.15;
-	  this.gravity = 0.004;
+	  this.jumpSpeed = 15;
+	  this.gravity = 32;
 	  this.isSprinting = false;
 	  this.sprintSpeed = this.baseSpeed * 2;
 	  this.canDash = true;
 	  this.isDashing = false;
-	  this.dashSpeed = 0.8;
-	  this.dashDirection = false;
-	  this.dashDuration = 200;
+	  this.dashSpeed = 30;
+	  this.dashDirection = new THREE.Vector3();
+	  this.dashDuration = 0.2; // Duration in seconds
+	  this.dashTime = 0; // Time accumulator for dash
   
 	  // Mouse sensitivity
 	  this.mouseSensitivity = 0.002;
@@ -146,77 +148,99 @@ export class FirstPersonControls {
 	}
   
 	onMouseMove(event) {
-		if (document.pointerLockElement === this.domElement) {
-		  this.mouseX -= event.movementX * this.mouseSensitivity;
-		  this.mouseY -= event.movementY * this.mouseSensitivity;
-	
-		  // Clamp vertical rotation
-		  this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
-	
-		  // Update the camera rotation in a different order
-		  this.camera.rotation.set(this.mouseY, this.mouseX, 0, 'YXZ');
-		}
+	  if (document.pointerLockElement === this.domElement) {
+		this.mouseX -= event.movementX * this.mouseSensitivity;
+		this.mouseY -= event.movementY * this.mouseSensitivity;
+  
+		// Clamp vertical rotation
+		this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
+  
+		// Update the camera rotation in a different order
+		this.camera.rotation.set(this.mouseY, this.mouseX, 0, 'YXZ');
+	  }
 	}
   
 	onKeyDown(event) {
-	if (event.target.tagName === 'INPUT')
-		return;
+	  if (event.target.tagName === 'INPUT') return;
 	  switch (event.code) {
-		case 'KeyW': this.keys.forward = true; break;
-		case 'KeyS': this.keys.backward = true; break;
-		case 'KeyA': this.keys.left = true; break;
-		case 'KeyD': this.keys.right = true; break;
-		case 'Space': this.keys.jump = true; break;
-		case 'ShiftLeft': this.keys.sprint = true; break;
+		case 'KeyW':
+		  this.keys.forward = true;
+		  break;
+		case 'KeyS':
+		  this.keys.backward = true;
+		  break;
+		case 'KeyA':
+		  this.keys.left = true;
+		  break;
+		case 'KeyD':
+		  this.keys.right = true;
+		  break;
+		case 'Space':
+		  this.keys.jump = true;
+		  break;
+		case 'ShiftLeft':
+		  this.keys.sprint = true;
+		  break;
 	  }
 	}
   
 	onKeyUp(event) {
 	  switch (event.code) {
-		case 'KeyW': this.keys.forward = false; break;
-		case 'KeyS': this.keys.backward = false; break;
-		case 'KeyA': this.keys.left = false; break;
-		case 'KeyD': this.keys.right = false; break;
-		case 'Space': this.keys.jump = false; break;
-		case 'ShiftLeft': this.keys.sprint = false; break;
+		case 'KeyW':
+		  this.keys.forward = false;
+		  break;
+		case 'KeyS':
+		  this.keys.backward = false;
+		  break;
+		case 'KeyA':
+		  this.keys.left = false;
+		  break;
+		case 'KeyD':
+		  this.keys.right = false;
+		  break;
+		case 'Space':
+		  this.keys.jump = false;
+		  break;
+		case 'ShiftLeft':
+		  this.keys.sprint = false;
+		  break;
 	  }
 	}
-
+  
 	calculateDirection() {
-			// Create a forward direction vector
-			const direction = new THREE.Vector3();
-
-			if (this.keys.forward) direction.z -= 1;
-			if (this.keys.backward) direction.z += 1;
-			if (this.keys.left) direction.x -= 1;
-			if (this.keys.right) direction.x += 1;
-
-			direction.normalize();
-			direction.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
-
-			return direction;
-		}
+	  // Create a forward direction vector
+	  const direction = new THREE.Vector3();
+  
+	  if (this.keys.forward) direction.z -= 1;
+	  if (this.keys.backward) direction.z += 1;
+	  if (this.keys.left) direction.x -= 1;
+	  if (this.keys.right) direction.x += 1;
+  
+	  direction.normalize();
+	  direction.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
+  
+	  return direction;
+	}
   
 	move() {
 	  // Calculate movement direction
 	  const direction = this.calculateDirection();
   
 	  // Apply movement to camera
-	  this.camera.position.x += direction.x * this.moveSpeed;
-	  this.camera.position.z += direction.z * this.moveSpeed;
+	  this.camera.position.x += direction.x * this.moveSpeed * deltaTime;
+	  this.camera.position.z += direction.z * this.moveSpeed * deltaTime;
   
 	  this.light.position.copy(this.camera.position);
 	}
   
 	jump() {
-	if (this.keys.jump && !this.isJumping) {
+	  if (this.keys.jump && !this.isJumping) {
 		this.keys.jump = false;
 		this.isJumping = true;
 		this.jumpVelocity = this.jumpSpeed;
-	  }
-	  else if (this.isJumping) {
-		this.camera.position.y += this.jumpVelocity;
-		this.jumpVelocity -= this.gravity;
+	  } else if (this.isJumping) {
+		this.camera.position.y += this.jumpVelocity * deltaTime;
+		this.jumpVelocity -= this.gravity * deltaTime;
   
 		if (this.camera.position.y <= this.floorHeight) {
 		  this.camera.position.y = this.floorHeight;
@@ -226,40 +250,43 @@ export class FirstPersonControls {
 		}
 	  } else this.camera.position.y = this.floorHeight;
 	}
-
+  
 	sprint() {
-		if (this.isJumping)
-			return;
-		if (this.keys.sprint && !this.isSprinting) {
-			this.isSprinting = true;
-				this.moveSpeed = this.sprintSpeed;
-		}
-		else if (!this.keys.sprint && this.isSprinting) {
-			this.moveSpeed = this.baseSpeed;
-			this.isSprinting = false;
-		}
+	  if (this.isJumping) return;
+	  if (this.keys.sprint && !this.isSprinting) {
+		this.isSprinting = true;
+		this.moveSpeed = this.sprintSpeed;
+	  } else if (!this.keys.sprint && this.isSprinting) {
+		this.moveSpeed = this.baseSpeed;
+		this.isSprinting = false;
+	  }
 	}
-
+  
 	dash() {
-		if (this.keys.jump && this.canDash && this.isJumping && !this.isDashing) {
-			this.isDashing = true;
-			setTimeout(() => {
-				this.isDashing = false;
-			}, this.dashDuration);
-		} 
-		else if (this.isDashing) {
-			if (this.canDash) {
-				this.dashDirection = this.calculateDirection();
-				this.canDash = false;
-			}
-			this.camera.position.add(this.dashDirection.multiplyScalar(this.dashSpeed));
+	  if (this.keys.jump && this.canDash && this.isJumping && !this.isDashing) {
+		// Start dash
+		this.isDashing = true;
+		this.canDash = false;
+		this.dashTime = 0; // Reset dash time
+		this.dashDirection.copy(this.calculateDirection()); // Set dash direction
+	  } else if (this.isDashing) {
+		// Continue dashing
+		this.dashTime += deltaTime;
+		if (this.dashTime < this.dashDuration) {
+		  // Move the camera in dash direction
+		  this.camera.position.add(this.dashDirection.clone().multiplyScalar(this.dashSpeed * deltaTime));
+		} else {
+		  // End dash
+		  this.isDashing = false;
 		}
+	  }
 	}
-
+  
 	update() {
 	  this.move();
 	  this.jump();
 	  this.sprint();
 	  this.dash();
 	}
-}
+  }
+  

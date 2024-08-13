@@ -1,7 +1,18 @@
 import * as THREE from 'three';
 import { localUserColor, mainCamera, scene, userManager } from './main.js';
 
-class Minimap {
+export const layer = {
+    MINIMAP: 2,
+    MAIN_CAMERA: 1,
+    ALL: 0
+};
+
+export function setLayerOnly(object, layerToAdd) {
+    object.layers.disable(layer.ALL);
+    object.layers.enable(layerToAdd);
+}
+
+export class Minimap {
     constructor() {
         this.minimapWidth = 200;
         this.minimapHeight = 200;
@@ -19,10 +30,6 @@ class Minimap {
         this.minimapCamera.position.set(0, 100, 0);  // Increase height for a wider view
         // this.minimapHelper = new THREE.CameraHelper(this.minimapCamera);
         // scene.add(this.minimapHelper);
-
- 
-        // Create a group to hold both the triangle and the text
-        this.group = new THREE.Group();
 
         // Define the 2D shape of the triangle
         const triangleShape = new THREE.Shape();
@@ -42,10 +49,10 @@ class Minimap {
         const triangleMaterial = new THREE.MeshBasicMaterial({ color: localUserColor });
         this.thickTriangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
         this.thickTriangleMesh.rotation.x = Math.PI / 2;
-
+        
         // Add the triangle mesh to the group
-        this.group.add(this.thickTriangleMesh);
-        scene.add(this.group); 
+        setLayerOnly(this.thickTriangleMesh, layer.MINIMAP);
+        scene.add(this.thickTriangleMesh); 
         
         this.minimapRenderer = new THREE.WebGLRenderer();
         this.minimapRenderer.setSize(window.innerHeight * 0.35, window.innerHeight * 0.35);
@@ -57,14 +64,14 @@ class Minimap {
         const minimapContainer = document.getElementById('minimapContainer');
         minimapContainer.appendChild(this.minimapRenderer.domElement);
         this.minimapCamera.lookAt(mainCamera.position);
+        this.minimapCamera.layers.enable(layer.MINIMAP);
     }
 
     update() {
-        this.group.rotation.y = mainCamera.rotation.y;
-        this.group.position.set(mainCamera.position.x, 50, mainCamera.position.z);
+        this.thickTriangleMesh.rotation.z = -mainCamera.rotation.y;
+        this.thickTriangleMesh.position.set(mainCamera.position.x, 50, mainCamera.position.z);
         this.minimapCamera.position.set(mainCamera.position.x, 100, mainCamera.position.z);
         this.minimapRenderer.render(scene, this.minimapCamera);
     }
 }
 
-export default Minimap;
