@@ -1,6 +1,8 @@
 # Makefile
 .PHONY: build up down
 
+all: build up
+
 build:
 	docker compose build
 

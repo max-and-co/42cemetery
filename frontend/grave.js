@@ -127,7 +127,7 @@ export class Grave extends THREE.Object3D {
         super();
         this.marker = null;
         this.login = userData.user.login;
-        this.imageUrl = userData.user.image.versions.small;
+        this.imageUrl = userData.user.image.versions.medium;
 
         const boxGeometry = new THREE.BoxGeometry(1, 2, 2);
         const cylinderGeometry = new THREE.CylinderGeometry(2, 2, 0.1, 32);

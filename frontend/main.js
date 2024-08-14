@@ -3,7 +3,7 @@ import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonCon
 import { Grave, Graveyard } from './grave.js';
 import { UserManager } from './userManager.js';
 import { Minimap } from './minimap.js';
-import { Zombie } from './zombie.js';
+// import { Zombie } from './zombie.js';
 
 // Set up the scene, mainCamera, and renderer
 export const scene = new THREE.Scene();
@@ -75,10 +75,10 @@ function updateDeltaTime(currentTime) {
     previousTime = currentTime;
 }
 
-const zombie = new Zombie(scene, new THREE.Vector3(12, 0.5, 20));
-const zombie1 = new Zombie(scene, new THREE.Vector3(123, 0.5, 20));
-const zombie2 = new Zombie(scene, new THREE.Vector3(45, 0.5, 20));
-const zombie3 = new Zombie(scene, new THREE.Vector3(63, 0.5, 20));
+// const zombie = new Zombie(scene, new THREE.Vector3(12, 0.5, 20));
+// const zombie1 = new Zombie(scene, new THREE.Vector3(123, 0.5, 20));
+// const zombie2 = new Zombie(scene, new THREE.Vector3(45, 0.5, 20));
+// const zombie3 = new Zombie(scene, new THREE.Vector3(63, 0.5, 20));
 
 
 
@@ -88,7 +88,7 @@ export function animate(currentTime) {
 
   updateDeltaTime(currentTime);
   controls.update();
-  zombie.update(mainCamera.position, deltaTime);
+  // zombie.update(mainCamera.position, deltaTime);
 
   // Rotate the icosahedron
   icosahedron.rotation.x += 0.01 * deltaTime;
