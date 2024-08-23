@@ -80,7 +80,8 @@ export class Graveyard {
         const filter1 = jsonData.users.filter(userData => userData.user.first_name.toLowerCase() !== '3b3');
         const filter2 = filter1.filter(userData => !(userData.user['staff?'] === true && userData.user['active?'] === false));
         const filteredUsers = filter2.filter(userData =>  userData.user.image.link !== null);
-        return filteredUsers;
+        const filteredUsersBlackholed = filteredUsers.filter(userData => userData.blackholed_at !== null && new Date(userData.blackholed_at) <= new Date());
+        return filteredUsersBlackholed;
     }
 
     countUserTypes(jsonData) {

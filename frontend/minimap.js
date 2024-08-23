@@ -19,25 +19,25 @@ export class Minimap {
 
         // Create an orthographic camera for the minimap
         this.minimapCamera = new THREE.OrthographicCamera(
-            this.minimapWidth / 12,  // left
-            -this.minimapWidth / 12,   // right
-            -this.minimapHeight / 12,  // top
-            this.minimapHeight / 12, // bottom
+            -this.minimapWidth / 8,  // left
+            this.minimapWidth / 8,   // right
+            this.minimapHeight / 8,  // top
+            -this.minimapHeight / 8, // bottom
             1,                // near
             4000              // far
         );
 
         this.minimapCamera.position.set(0, 100, 0);  // Increase height for a wider view
-        // this.minimapHelper = new THREE.CameraHelper(this.minimapCamera);
-        // scene.add(this.minimapHelper);
+        this.minimapCamera.lookAt(0, 0, 0);
+        this.minimapCamera.up.set(0, 0, -1); // Set the up vector to point towards negative Z
 
         // Define the 2D shape of the triangle
         const triangleShape = new THREE.Shape();
-        triangleShape.moveTo(0, -1);     // First vertex at the bottom
-        triangleShape.lineTo(-1, 1);   // Second vertex at the top left
-        triangleShape.lineTo(0, 0.5);
-        triangleShape.lineTo(1, 1);    // Third vertex at the top right
-        triangleShape.lineTo(0, -1);     // Close the path back to the first vertex
+        triangleShape.moveTo(0, 1);     // First vertex at the top
+        triangleShape.lineTo(-1, -1);   // Second vertex at the bottom left
+        triangleShape.lineTo(0, -0.5);
+        triangleShape.lineTo(1, -1);    // Third vertex at the bottom right
+        triangleShape.lineTo(0, 1);     // Close the path back to the first vertex
 
         // Set the extrusion settings
         const extrudeSettings = {
@@ -63,15 +63,13 @@ export class Minimap {
         this.minimapRenderer.domElement.style.border = '3px solid white';
         const minimapContainer = document.getElementById('minimapContainer');
         minimapContainer.appendChild(this.minimapRenderer.domElement);
-        this.minimapCamera.lookAt(mainCamera.position);
         this.minimapCamera.layers.enable(layer.MINIMAP);
     }
 
     update() {
-        this.thickTriangleMesh.rotation.z = -mainCamera.rotation.y;
-        this.thickTriangleMesh.position.set(mainCamera.position.x, 50, mainCamera.position.z);
-        this.minimapCamera.position.set(mainCamera.position.x, 100, mainCamera.position.z);
+        this.thickTriangleMesh.rotation.z = -userManager.localUser.parent.rotation.y;
+        this.thickTriangleMesh.position.set(userManager.localUser.parent.position.x, 50, userManager.localUser.parent.position.z);
+        this.minimapCamera.position.set(userManager.localUser.parent.position.x, 100, userManager.localUser.parent.position.z);
         this.minimapRenderer.render(scene, this.minimapCamera);
     }
 }
-

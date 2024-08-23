@@ -1,5 +1,9 @@
-import { localUserColor, mainCamera } from './main.js';
+import * as THREE from 'three';
+import { localUserColor, mainCamera, renderer, light} from './main.js';
 import { User } from './user.js';
+import { GroundThirdPersonControls } from './FirstPersonControls.js';
+
+export let controls;
 
 export class UserManager {
 	constructor(localUserData) {
@@ -13,8 +17,8 @@ export class UserManager {
 		window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
 	}
   
-	createUser(userData) {
-	  const user = new User(userData);
+	createUser(userData, isLocalUser = false) {
+	  const user = new User(userData, isLocalUser);
 	  user.init();
 	  return user;
 	}
@@ -95,6 +99,13 @@ export class UserManager {
 		console.log(this.localUser);
 		console.log(`Total connections: ${data.total_connections}`);
 		console.log(`Connected as client ${this.id}`);
+		console.log('Local user:', this.localUser);
+		const selectedTitleUser = this.localUser.titles_users.find(obj => obj.selected === true);
+		const selectedTitle = this.localUser.titles.find(title => title.id === selectedTitleUser.title_id);
+		this.localUser.title = selectedTitle.name;
+		this.localUser.color = localUserColor;
+		this.localUser = this.createUser(this.localUser, /* isLocalUser : */ true);
+		controls = new GroundThirdPersonControls(this.localUser, renderer.domElement, 1, light);
 		for (const user of data.users)
 			this.users[user.client_id] = this.createUser(user.user_data);
 	}
@@ -125,5 +136,14 @@ export class UserManager {
 		}
 	}
 
+	updateCameraPosition() {
+		if (mainCamera && this.localUser.parent) {
+			const offset = new THREE.Vector3(0, 10, 10); // Define the offset vector
+			const targetPosition = new THREE.Vector3().copy(this.localUser.parent.position).add(offset);
+			
+			// Interpolate between current camera position and target position
+			mainCamera.position.lerp(targetPosition, 0.1); // The 0.1 factor controls the smoothness
+		}
+	}
 }
   

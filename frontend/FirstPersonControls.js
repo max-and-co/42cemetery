@@ -28,7 +28,7 @@ export class FirstPersonControls {
 	  this.mouseY = 0;
   
 	  // Set up event listeners
-	  this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+	//   this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
 	  document.addEventListener('keydown', this.onKeyDown.bind(this));
 	  document.addEventListener('keyup', this.onKeyUp.bind(this));
   
@@ -89,6 +89,7 @@ export class FirstPersonControls {
 	  this.camera.translateZ(direction.z * this.moveSpeed);
 	}
   }
+
   export class GroundFirstPersonControls {
 	constructor(camera, domElement, floorHeight = 0, light) {
 	  // Initialization code...
@@ -137,7 +138,7 @@ export class FirstPersonControls {
 	  this.mouseY = 0;
   
 	  // Set up event listeners
-	  this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+	//   this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
 	  document.addEventListener('keydown', this.onKeyDown.bind(this));
 	  document.addEventListener('keyup', this.onKeyUp.bind(this));
   
@@ -275,6 +276,208 @@ export class FirstPersonControls {
 		if (this.dashTime < this.dashDuration) {
 		  // Move the camera in dash direction
 		  this.camera.position.add(this.dashDirection.clone().multiplyScalar(this.dashSpeed * deltaTime));
+		} else {
+		  // End dash
+		  this.isDashing = false;
+		}
+	  }
+	}
+  
+	update() {
+	  this.move();
+	  this.jump();
+	  this.sprint();
+	  this.dash();
+	}
+  }
+  
+
+  export class GroundThirdPersonControls {
+	constructor(user, domElement, floorHeight = 0, light) {
+	  // Initialization code...
+	  this.user = user;
+	  this.domElement = domElement;
+	  this.floorHeight = floorHeight;
+	  this.light = light;
+  
+	  // Movement speed
+	  this.baseSpeed = 5;
+	  this.moveSpeed = this.baseSpeed;
+	  this.jumpSpeed = 15;
+	  this.gravity = 32;
+	  this.isSprinting = false;
+	  this.sprintSpeed = this.baseSpeed * 2;
+	  this.canDash = true;
+	  this.isDashing = false;
+	  this.dashSpeed = 30;
+	  this.dashDirection = new THREE.Vector3();
+	  this.dashDuration = 0.2; // Duration in seconds
+	  this.dashTime = 0; // Time accumulator for dash
+  
+	  // Mouse sensitivity
+	  this.mouseSensitivity = 0.002;
+  
+	  // Current velocity
+	  this.velocity = new THREE.Vector3();
+  
+	  // Jumping state
+	  this.isJumping = false;
+	  this.jumpVelocity = 0;
+  
+	  // Keyboard state
+	  this.keys = {
+		forward: false,
+		backward: false,
+		left: false,
+		right: false,
+		jump: false,
+		sprint: false,
+		dash: false,
+	  };
+  
+	  // Mouse state
+	  this.mouseX = 0;
+	  this.mouseY = 0;
+  
+	  // Set up event listeners
+	//   this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+	  document.addEventListener('keydown', this.onKeyDown.bind(this));
+	  document.addEventListener('keyup', this.onKeyUp.bind(this));
+  
+	  // Lock pointer
+	  this.domElement.addEventListener('click', () => {
+		this.domElement.requestPointerLock();
+	  });
+	}
+  
+	onMouseMove(event) {
+	  if (document.pointerLockElement === this.domElement) {
+		this.mouseX -= event.movementX * this.mouseSensitivity;
+		this.mouseY -= event.movementY * this.mouseSensitivity;
+  
+		// Clamp vertical rotation
+		this.mouseY = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.mouseY));
+  
+		// Update the camera rotation in a different order
+		this.camera.rotation.set(this.mouseY, this.mouseX, 0, 'YXZ');
+	  }
+	}
+  
+	onKeyDown(event) {
+	  if (event.target.tagName === 'INPUT') return;
+	  switch (event.code) {
+		case 'KeyW':
+		  this.keys.forward = true;
+		  break;
+		case 'KeyS':
+		  this.keys.backward = true;
+		  break;
+		case 'KeyA':
+		  this.keys.left = true;
+		  break;
+		case 'KeyD':
+		  this.keys.right = true;
+		  break;
+		case 'Space':
+		  this.keys.jump = true;
+		  break;
+		case 'ShiftLeft':
+		  this.keys.sprint = true;
+		  break;
+	  }
+	}
+  
+	onKeyUp(event) {
+	  switch (event.code) {
+		case 'KeyW':
+		  this.keys.forward = false;
+		  break;
+		case 'KeyS':
+		  this.keys.backward = false;
+		  break;
+		case 'KeyA':
+		  this.keys.left = false;
+		  break;
+		case 'KeyD':
+		  this.keys.right = false;
+		  break;
+		case 'Space':
+		  this.keys.jump = false;
+		  break;
+		case 'ShiftLeft':
+		  this.keys.sprint = false;
+		  break;
+	  }
+	}
+  
+	calculateDirection() {
+	  // Create a forward direction vector
+	  const direction = new THREE.Vector3(0,0,0);
+  
+	  if (this.keys.forward) direction.z = -1;
+	  if (this.keys.backward) direction.z = 1;
+	  if (this.keys.left) direction.x = -1;
+	  if (this.keys.right) direction.x = 1;
+  
+	  return direction;
+	}
+  
+	move() {
+	  // Calculate movement direction
+	  const direction = this.calculateDirection();
+  
+	  // Apply movement to camera
+	  this.user.parent.position.x += direction.x * this.moveSpeed * deltaTime;
+	  this.user.parent.position.z += direction.z * this.moveSpeed * deltaTime;
+	  if (direction.x !== 0 || direction.z !== 0)
+		this.user.parent.rotation.y = Math.atan2(-direction.x, -direction.z);
+
+  
+	  this.light.position.copy(this.user.parent.position);
+	}
+  
+	jump() {
+	  if (this.keys.jump && !this.isJumping) {
+		this.keys.jump = false;
+		this.isJumping = true;
+		this.jumpVelocity = this.jumpSpeed;
+	  } else if (this.isJumping) {
+		this.user.parent.position.y += this.jumpVelocity * deltaTime;
+		this.jumpVelocity -= this.gravity * deltaTime;
+  
+		if (this.user.parent.position.y <= this.floorHeight) {
+		  this.user.parent.position.y = this.floorHeight;
+		  this.isJumping = false;
+		  this.canDash = true;
+		  this.jumpVelocity = 0;
+		}
+	  } else this.user.parent.position.y = this.floorHeight;
+	}
+  
+	sprint() {
+	  if (this.isJumping) return;
+	  if (this.keys.sprint && !this.isSprinting) {
+		this.isSprinting = true;
+		this.moveSpeed = this.sprintSpeed;
+	  } else if (!this.keys.sprint && this.isSprinting) {
+		this.moveSpeed = this.baseSpeed;
+		this.isSprinting = false;
+	  }
+	}
+  
+	dash() {
+	  if (this.keys.jump && this.canDash && this.isJumping && !this.isDashing) {
+		// Start dash
+		this.isDashing = true;
+		this.canDash = false;
+		this.dashTime = 0; // Reset dash time
+		this.dashDirection.copy(this.calculateDirection()); // Set dash direction
+	  } else if (this.isDashing) {
+		// Continue dashing
+		this.dashTime += deltaTime;
+		if (this.dashTime < this.dashDuration) {
+		  // Move the camera in dash direction
+		  this.user.parent.position.add(this.dashDirection.clone().multiplyScalar(this.dashSpeed * deltaTime));
 		} else {
 		  // End dash
 		  this.isDashing = false;

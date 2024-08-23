@@ -3,12 +3,14 @@ import { scene } from './main.js';
 import { layer, setLayerOnly } from './minimap.js';
 
 export class User {
-    constructor(userData) {
+    constructor(userData, isLocalUser = false) {
         this.initializeUserData(userData);
         this.parent = null;
         this.sphere = null;
         this.labels = {};
+        this.userInfoSprite = null;
         this.levelLabel = null;
+        this.isLocalUser = isLocalUser;
     }
 
     initializeUserData(userData) {
@@ -24,11 +26,13 @@ export class User {
         this.createParent();
         this.createSphere();
         this.create3DFrame();
-        this.createLabel('login', this.title, 1.6, 'white', 32, 20);
-        this.createLevelProgressBar(this.level);
+        if (this.isLocalUser)
+            return;
+        this.createUserInfoDisplay();
         this.createMinimapLabel();
     }
 
+    
     remove() {
         scene.remove(this.parent);
     }
@@ -44,39 +48,73 @@ export class User {
         this.sphere = new THREE.Mesh(geometry, material);
         this.parent.add(this.sphere);
     }
-
+    
     create3DFrame() {
         const texture = new THREE.TextureLoader().load(this.image.link);
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(-1, -1);
+        if (!this.isLocalUser) {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(-1, -1);
+        }
         const material = new THREE.MeshBasicMaterial({ map: texture });
         const frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.1), material);
         frame.position.set(0, 0, -0.95);
         this.sphere.add(frame);
     }
-
-    createLabel(labelType, text, height, color, size, padding = 10) {
-        const canvas = this.createLabelCanvas(text, size, padding, color);
-        const label = this.createLabelSprite(canvas, 2, 1, 0, height, 0);
-        setLayerOnly(label, layer.MAIN_CAMERA);
-        this.parent.add(label);
-        this.labels[labelType] = label;
-    }
-
-    createLabelCanvas(text, fontSize, padding, color) {
+    
+    createUserInfoDisplay() {
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        context.font = `${fontSize}px Verdana`;
-        const textWidth = context.measureText(text).width;
-        canvas.width = textWidth + padding * 2;
-        canvas.height = fontSize + padding * 2;
-        context.font = `${fontSize}px Verdana`;
-        context.fillStyle = 'transparent';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = color;
-        context.fillText(text, padding, fontSize + padding / 2);
-        return canvas;
+        canvas.width = 800;
+        canvas.height = 200; // Increased height to accommodate login, level, and progress bar
+        this.userInfoContext = canvas.getContext('2d');
+
+        this.userInfoSprite = this.createLabelSprite(canvas, 4, 2, 0, 3, 0);
+        setLayerOnly(this.userInfoSprite, layer.MAIN_CAMERA);
+        this.parent.add(this.userInfoSprite);
+
+        this.updateUserInfoDisplay();
     }
+
+    updateUserInfoDisplay() {
+        const ctx = this.userInfoContext;
+        const width = ctx.canvas.width;
+        const height = ctx.canvas.height;
+        const level = Math.floor(this.level);
+        const percentage = (this.level - level) * 100;
+    
+        ctx.clearRect(0, 0, width, height);
+    
+        // Calculate vertical positions
+        const topPadding = 30; // Space at the top of the canvas
+        const bottomPadding = 20; // Space at the bottom of the canvas
+        const elementHeight = 70; // Approximate height for each text element
+        const spacing = (height - topPadding - bottomPadding - 2 * elementHeight - 20) / 2; // Space between elements
+    
+        // Draw login (positioned at top)
+        ctx.font = 'bold 70px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(this.title, width / 2, topPadding);
+    
+        // Draw level (positioned in the middle)
+        ctx.font = 'bold 60px Arial';
+        ctx.fillStyle = '#00ff00';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`Level ${level}`, width / 2, topPadding + elementHeight + spacing);
+    
+        // Draw progress bar (positioned at the bottom)
+        const barWidth = width - 20;
+        const barHeight = 30;
+        const barY = topPadding - 20 + 2 * elementHeight + 2 * spacing + 10; // Adjust based on element positions
+        ctx.fillStyle = '#555555';
+        this.roundRect(ctx, 10, barY, barWidth, barHeight, 10, true, false);
+        ctx.fillStyle = '#00ff00';
+        this.roundRect(ctx, 10, barY, barWidth * (percentage / 100), barHeight, 10, true, false);
+    
+        this.userInfoSprite.material.map.needsUpdate = true;
+    }
+    
 
     createLabelSprite(canvas, scaleX, scaleY, posX, posY, posZ) {
         const texture = new THREE.CanvasTexture(canvas);
@@ -85,37 +123,6 @@ export class User {
         sprite.scale.set(scaleX, scaleY, 1);
         sprite.position.set(posX, posY, posZ);
         return sprite;
-    }
-
-    createLevelProgressBar(progress) {
-        const level = Math.floor(progress);
-        const percentage = (progress - level) * 100;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = 200;
-        canvas.height = 20;
-        this.progressBarContext = canvas.getContext('2d');
-
-        this.progressBar = this.createLabelSprite(canvas, 1.3, 0.1, 0, 1.2, 0);
-        setLayerOnly(this.progressBar, layer.MAIN_CAMERA);
-        this.parent.add(this.progressBar);
-
-        this.updateProgressBar(percentage);
-        this.createLabel('level', `Level ${level}`, 1.2, '#00ff00', 28, 60);
-    }
-
-    updateProgressBar(percentage) {
-        const ctx = this.progressBarContext;
-        const width = ctx.canvas.width;
-        const height = ctx.canvas.height;
-        const cornerRadius = 10;
-
-        ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = '#555555';
-        this.roundRect(ctx, 0, 0, width, height, cornerRadius, true, false);
-        ctx.fillStyle = '#00ff00';
-        this.roundRect(ctx, 0, 0, width * (percentage / 100), height, cornerRadius, true, false);
-        this.progressBar.material.map.needsUpdate = true;
     }
 
     roundRect(ctx, x, y, width, height, radius, fill, stroke) {
@@ -141,7 +148,7 @@ export class User {
 
     createMinimapLabel() {
         const canvas = this.createMinimapLabelCanvas();
-        this.minimapLabel = this.createLabelSprite(canvas, 10, 5, 0, 1, -1.5);
+        this.minimapLabel = this.createLabelSprite(canvas, 10, 5, -1, 1, 2);
         setLayerOnly(this.minimapLabel, layer.MINIMAP);
         this.parent.add(this.minimapLabel);
     }
@@ -149,14 +156,13 @@ export class User {
     createMinimapLabelCanvas() {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        const fontSize = 15;
+        const fontSize = 20;
         const textWidth = context.measureText(this.login).width;
-        canvas.width = textWidth + 20;
+        canvas.width = textWidth + 50;
         canvas.height = fontSize + 10;
-        context.font = `${fontSize}px Verdana`;
+        context.font = `${fontSize}px Arial`;
         context.fillStyle = 'white';
         context.translate(canvas.width / 2, canvas.height / 2);
-        context.rotate(Math.PI);
         context.fillText(this.login, -textWidth / 2, fontSize / 2);
         return canvas;
     }

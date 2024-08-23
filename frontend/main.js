@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
 import { Grave, Graveyard } from './grave.js';
-import { UserManager } from './userManager.js';
+import { UserManager, controls } from './userManager.js';
 import { Minimap } from './minimap.js';
 import { Zombie } from './zombie.js';
 
@@ -9,7 +9,7 @@ import { Zombie } from './zombie.js';
 export const scene = new THREE.Scene();
 export const mainCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const renderer = new THREE.WebGLRenderer();
+export const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('app').appendChild(renderer.domElement);
@@ -24,11 +24,12 @@ const gridhelper = new THREE.GridHelper(400, 400);
 scene.add(gridhelper);
 // Add lighting
 const hemilight = new THREE.HemisphereLight(0xffffff, 1);
-const light = new THREE.PointLight(0xffffff, 1, 30, 2);
+export const light = new THREE.PointLight(0xffffff, 1, 30, 2);
 scene.add(hemilight, light);
 
 // Set initial mainCamera position
 mainCamera.position.y = 10;
+mainCamera.position.z = -10;
 mainCamera.layers.enable(1);
 let moveMode = 'ground';
 
@@ -61,6 +62,9 @@ export function initializeUserSystem(localUserData) {
   // console.log(userManager.localUser);
   minimap = new Minimap();
   userLoggedData = localUserData;
+  setTimeout(() => {
+    mainCamera.lookAt(0, 0, 0);
+  }, 500);
 }
 
 export let deltaTime = 0;
@@ -87,9 +91,11 @@ export function animate(currentTime) {
   requestAnimationFrame(animate);
 
   updateDeltaTime(currentTime);
-  controls.update();
-  zombie.update(mainCamera.position, deltaTime);
-
+  if (controls)
+    controls.update();
+  // zombie.update(mainCamera.position, deltaTime);
+  if(userManager)
+    userManager.updateCameraPosition();
   // Rotate the icosahedron
   icosahedron.rotation.x += 0.01 * deltaTime;
   icosahedron.rotation.y += 0.01 * deltaTime;
@@ -99,14 +105,14 @@ export function animate(currentTime) {
     const message = JSON.stringify({
       id: userManager.id,
       position: {
-        x: mainCamera.position.x,
-        y: mainCamera.position.y,
-        z: mainCamera.position.z
+        x: userManager.localUser.parent.position.x,
+        y: userManager.localUser.parent.position.y,
+        z: userManager.localUser.parent.position.z
       },
       rotation: {
-      x: mainCamera.rotation.x,
-      y: mainCamera.rotation.y,
-      z: mainCamera.rotation.z
+      x: userManager.localUser.parent.rotation.x,
+      y: userManager.localUser.parent.rotation.y,
+      z: userManager.localUser.parent.rotation.z
       }
     });
     userManager.safeSend(message);
@@ -131,7 +137,6 @@ function validateInput(event) {
 
 // Initialize FirstPersonControls
 // export const controls = new FirstPersonControls(mainCamera, renderer.domElement);
-export let controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
 
 requestAnimationFrame(animate);
 
