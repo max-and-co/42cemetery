@@ -37,7 +37,7 @@ export class Graveyard {
                 else {
                     type = 'Blackholed';
                 }
-                const yRotation = Math.random() * Math.PI * 2;
+                const yRotation = Math.PI / 2 * 3;
 
                 const grave = new Grave(scene, position, type, yRotation, userData);
                 this.graves.push(grave);
@@ -130,16 +130,31 @@ export class Grave extends THREE.Object3D {
         this.login = userData.user.login;
         this.imageUrl = userData.user.image.versions.small;
 
-        const boxGeometry = new THREE.BoxGeometry(1, 2, 2);
+        const boxGeometry = new THREE.BoxGeometry(0.5, 1.5, 1.5);
         const cylinderGeometry = new THREE.CylinderGeometry(2, 2, 0.1, 32);
-
+        
+        const graveGeometry = new THREE.BoxGeometry(1, 2, 3);
+        const grayMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+        const grave = new THREE.Mesh(graveGeometry, grayMaterial);
+        grave.position.set(-1, 0, 0);
+        this.add(grave);
+        // Material for the tombstone
+        const tombstoneMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+        const tombstoneGeometry = new THREE.BoxGeometry(0.5, 2.5, 2);
+        const tombstone = new THREE.Mesh(tombstoneGeometry, tombstoneMaterial);
+        tombstone.position.set(0, 0.25, 0);
+        tombstone.rotation.set(0, 0, Math.PI / 12 * 5);
+        this.add(tombstone);
+        
         // Load texture for the cube
         const textureLoader = new THREE.TextureLoader();
         textureLoader.load(this.imageUrl, (texture) => {
-            const cubeMaterial = new THREE.MeshStandardMaterial({ map: texture });
-            const cube = new THREE.Mesh(boxGeometry, cubeMaterial);
-            cube.position.set(0, 1, 0);  // Slightly above the base
-            this.add(cube);
+            const pictureMaterial = new THREE.MeshStandardMaterial({ map: texture });
+            const picture = new THREE.Mesh(boxGeometry, pictureMaterial);
+            picture.position.set(0.3, 0.4, 0);
+              // Slightly above the base
+              picture.rotation.set(0, 0, Math.PI / 12 * 5);
+            this.add(picture);
         });
 
         // Material for the base
