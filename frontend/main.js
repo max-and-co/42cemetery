@@ -75,10 +75,10 @@ function updateDeltaTime(currentTime) {
     previousTime = currentTime;
 }
 
-const zombie = new Zombie(scene, new THREE.Vector3(12, 0.5, 20));
-const zombie1 = new Zombie(scene, new THREE.Vector3(123, 0.5, 20));
-const zombie2 = new Zombie(scene, new THREE.Vector3(45, 0.5, 20));
-const zombie3 = new Zombie(scene, new THREE.Vector3(63, 0.5, 20));
+// const zombie = new Zombie(scene, new THREE.Vector3(12, 0.5, 20));
+// const zombie1 = new Zombie(scene, new THREE.Vector3(123, 0.5, 20));
+// const zombie2 = new Zombie(scene, new THREE.Vector3(45, 0.5, 20));
+// const zombie3 = new Zombie(scene, new THREE.Vector3(63, 0.5, 20));
 
 
 
@@ -88,7 +88,7 @@ export function animate(currentTime) {
 
   updateDeltaTime(currentTime);
   controls.update();
-  zombie.update(mainCamera.position, deltaTime);
+  // zombie.update(mainCamera.position, deltaTime);
 
   // Rotate the icosahedron
   icosahedron.rotation.x += 0.01 * deltaTime;

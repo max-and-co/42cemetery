@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { scene } from './main.js';
 import { layer, setLayerOnly } from './minimap.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export class User {
     constructor(userData) {
         this.initializeUserData(userData);
         this.parent = null;
         this.sphere = null;
+        this.duck = null;
         this.labels = {};
         this.levelLabel = null;
     }
@@ -23,6 +25,7 @@ export class User {
     init() {
         this.createParent();
         this.createSphere();
+        this.createDuck();
         this.create3DFrame();
         this.createLabel('login', this.title, 1.6, 'white', 32, 20);
         this.createLevelProgressBar(this.level);
@@ -40,24 +43,33 @@ export class User {
 
     createSphere() {
         const geometry = new THREE.SphereGeometry(1, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: this.color });
+        const material = new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: 0.0 });
         this.sphere = new THREE.Mesh(geometry, material);
         this.parent.add(this.sphere);
     }
-
+    createDuck() {
+        const loader = new GLTFLoader();
+        loader.load('models/rubber_duck.glb', (gltf) => {
+            this.duck = gltf.scene;
+            this.duck.scale.set(1, 1, 1);
+            this.duck.position.set(0, -0.5, 0);
+            this.duck.rotation.x = Math.PI;
+            this.sphere.add(this.duck);
+        });
+    }
     create3DFrame() {
         const texture = new THREE.TextureLoader().load(this.image.link);
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(-1, -1);
         const material = new THREE.MeshBasicMaterial({ map: texture });
         const frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.1), material);
-        frame.position.set(0, 0, -0.95);
+        frame.position.set(0, 0.5, -0.95);
         this.sphere.add(frame);
     }
 
     createLabel(labelType, text, height, color, size, padding = 10) {
         const canvas = this.createLabelCanvas(text, size, padding, color);
-        const label = this.createLabelSprite(canvas, 2, 1, 0, height, 0);
+        const label = this.createLabelSprite(canvas, 2, 1, 0, height + 0.3, 0);
         setLayerOnly(label, layer.MAIN_CAMERA);
         this.parent.add(label);
         this.labels[labelType] = label;
@@ -96,7 +108,7 @@ export class User {
         canvas.height = 20;
         this.progressBarContext = canvas.getContext('2d');
 
-        this.progressBar = this.createLabelSprite(canvas, 1.3, 0.1, 0, 1.2, 0);
+        this.progressBar = this.createLabelSprite(canvas, 1.3, 0.1, 0, 1.2 + 0.3, 0);
         setLayerOnly(this.progressBar, layer.MAIN_CAMERA);
         this.parent.add(this.progressBar);
 
@@ -169,7 +181,6 @@ export class User {
         const q = new THREE.Quaternion();
         q.setFromEuler(new THREE.Euler(rotation.x, rotation.y, rotation.z, 'YXZ'));
         q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI));
-
         this.sphere.quaternion.copy(q);
     }
 }
