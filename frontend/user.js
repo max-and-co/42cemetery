@@ -3,14 +3,15 @@ import { scene } from './main.js';
 import { layer, setLayerOnly } from './minimap.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-export class User {
+export class User extends THREE.Object3D {
     constructor(userData) {
+        super();
         this.initializeUserData(userData);
-        this.parent = null;
         this.sphere = null;
         this.duck = null;
         this.labels = {};
         this.levelLabel = null;
+        scene.add(this);
     }
 
     initializeUserData(userData) {
@@ -23,7 +24,6 @@ export class User {
     }
 
     init() {
-        this.createParent();
         this.createSphere();
         this.createDuck();
         this.create3DFrame();
@@ -33,19 +33,14 @@ export class User {
     }
 
     remove() {
-        scene.remove(this.parent);
-    }
-
-    createParent() {
-        this.parent = new THREE.Object3D();
-        scene.add(this.parent);
+        scene.remove(this);
     }
 
     createSphere() {
         const geometry = new THREE.SphereGeometry(1, 32, 32);
         const material = new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: 0.0 });
         this.sphere = new THREE.Mesh(geometry, material);
-        this.parent.add(this.sphere);
+        this.add(this.sphere);
     }
     createDuck() {
         const loader = new GLTFLoader();
@@ -71,7 +66,7 @@ export class User {
         const canvas = this.createLabelCanvas(text, size, padding, color);
         const label = this.createLabelSprite(canvas, 2, 1, 0, height + 0.3, 0);
         setLayerOnly(label, layer.MAIN_CAMERA);
-        this.parent.add(label);
+        this.add(label);
         this.labels[labelType] = label;
     }
 
@@ -110,7 +105,7 @@ export class User {
 
         this.progressBar = this.createLabelSprite(canvas, 1.3, 0.1, 0, 1.2 + 0.3, 0);
         setLayerOnly(this.progressBar, layer.MAIN_CAMERA);
-        this.parent.add(this.progressBar);
+        this.add(this.progressBar);
 
         this.updateProgressBar(percentage);
         this.createLabel('level', `Level ${level}`, 1.2, '#00ff00', 28, 60);
@@ -155,7 +150,7 @@ export class User {
         const canvas = this.createMinimapLabelCanvas();
         this.minimapLabel = this.createLabelSprite(canvas, 10, 5, 0, 1, -1.5);
         setLayerOnly(this.minimapLabel, layer.MINIMAP);
-        this.parent.add(this.minimapLabel);
+        this.add(this.minimapLabel);
     }
 
     createMinimapLabelCanvas() {
@@ -174,9 +169,9 @@ export class User {
     }
 
     updatePosition(x, y, z, rotation) {
-        if (!this.parent) return;
+        if (!this) return;
         
-        this.parent.position.set(parseFloat(x), parseFloat(y), parseFloat(z));
+        this.position.set(parseFloat(x), parseFloat(y), parseFloat(z));
 
         const q = new THREE.Quaternion();
         q.setFromEuler(new THREE.Euler(rotation.x, rotation.y, rotation.z, 'YXZ'));
