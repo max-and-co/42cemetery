@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import { FirstPersonControls, GroundFirstPersonControls } from './FirstPersonControls.js';
-import { Grave, Graveyard } from './grave.js';
 import { UserManager } from './userManager.js';
 import { Minimap } from './minimap.js';
-import { Zombie } from './zombie.js';
 
 // Set up the scene, mainCamera, and renderer
 export const scene = new THREE.Scene();
@@ -32,6 +30,9 @@ mainCamera.position.y = 10;
 mainCamera.layers.enable(1);
 let moveMode = 'ground';
 
+const groundControls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
+const flyControls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
+
 document.addEventListener('keydown', (event) => {
   if (event.key === 'p') {
     userManager.socket.close();
@@ -40,11 +41,11 @@ document.addEventListener('keydown', (event) => {
     userManager.connectWebSocket();
   }
   if (event.key === 'i' && moveMode === 'ground') {
-    controls = new FirstPersonControls(mainCamera, renderer.domElement); 
+    controls = flyControls;
     moveMode = 'fly';
   }
   else if (event.key === 'i' && moveMode === 'fly') {
-    controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
+    controls = groundControls
     moveMode = 'ground';
   }
 });
@@ -75,20 +76,12 @@ function updateDeltaTime(currentTime) {
     previousTime = currentTime;
 }
 
-const zombie = new Zombie(scene, new THREE.Vector3(12, 0.5, 20));
-const zombie1 = new Zombie(scene, new THREE.Vector3(123, 0.5, 20));
-const zombie2 = new Zombie(scene, new THREE.Vector3(45, 0.5, 20));
-const zombie3 = new Zombie(scene, new THREE.Vector3(63, 0.5, 20));
-
-
-
 // Modified animation loop
 export function animate(currentTime) {
   requestAnimationFrame(animate);
 
   updateDeltaTime(currentTime);
   controls.update();
-  zombie.update(mainCamera.position, deltaTime);
 
   // Rotate the icosahedron
   icosahedron.rotation.x += 0.01 * deltaTime;
@@ -116,19 +109,6 @@ export function animate(currentTime) {
   renderer.render(scene, mainCamera);
 }
 
-document.addEventListener('keydown', validateInput);
-
-function validateInput(event) {
-  if (event.key === "Enter") {
-    const inputField = document.getElementById("inputField");
-    const inputValue = inputField.value;
-
-    graveyard.markGrave(inputValue);
-    inputField.value = "";
-    inputField.blur(); // Lose focus of the input bar
-  }
-}
-
 // Initialize FirstPersonControls
 // export const controls = new FirstPersonControls(mainCamera, renderer.domElement);
 export let controls = new GroundFirstPersonControls(mainCamera, renderer.domElement, 1, light);
@@ -142,13 +122,10 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-let graveyard;
 
 fetch('data.json')
   .then(response => response.json())
   .then(jsonData => {
-    // Create the graveyard
-    graveyard = new Graveyard(scene, jsonData);
   })
   .catch(error => console.error('Error loading JSON:', error));
 
